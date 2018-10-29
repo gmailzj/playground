@@ -3,6 +3,8 @@ package main
 import "fmt"
 import "math"
 
+// Go语言中byte和rune实质上就是uint8和int32类型。
+// byte用来强调数据是raw data，而不是数字；而rune用来表示Unicode的code point
 
 type person struct {
     age int 
