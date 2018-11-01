@@ -749,3 +749,269 @@ func main() {
 切片 `s` 的长度和容量可通过表达式 `len(s)` 和 `cap(s)` 来获取。
 
 你可以通过重新切片来扩展一个切片。
+
+## nil 切片
+
+切片的零值是 `nil` 。
+
+nil 切片的长度和容量为 0 且没有底层数组。
+
+## 用 make 创建切片
+
+切面可以用内建函数 `make` 来创建，这也是你创建动态数组的方式。
+
+`make` 函数会分配一个元素为零值的数组并返回一个引用了它的切片：
+
+```
+a := make([]int, 5)  // len(a)=5
+```
+
+要指定它的容量，需向 `make` 传入第三个参数：
+
+```go
+b := make([]int, 0, 5) // len(b)=0, cap(b)=5
+
+b = b[:cap(b)] // len(b)=5, cap(b)=5
+b = b[1:]      // len(b)=4, cap(b)=4
+```
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	a := make([]int, 5)
+	printSlice("a", a)
+
+	b := make([]int, 0, 5)
+	printSlice("b", b)
+
+	c := b[:2]
+	printSlice("c", c)
+
+	d := c[2:5]
+	printSlice("d", d)
+	
+	e := b[:cap(b)]
+	printSlice("e", e)
+	
+	f := e[1:]
+	printSlice("f", f)
+	
+}
+
+func printSlice(s string, x []int) {
+	fmt.Printf("%s len=%d cap=%d %v\n",
+		s, len(x), cap(x), x)
+}
+
+```
+
+## 切片的切片
+
+切片可包含任何类型，甚至包括其它的切片。
+
+## 向切片追加元素
+
+为切片追加新的元素是种常用的操作，为此 Go 提供了内建的 `append` 函数。 内建函数的[文档](https://go-zh.org/pkg/builtin/#append)对此函数有详细的介绍。
+
+```
+func append(s []T, vs ...T) []T
+```
+
+`append` 的第一个参数 `s` 是一个元素类型为 `T` 的切片， 其余类型为 `T` 的值将会追加到该切片的末尾。
+
+`append` 的结果是一个包含原切片所有元素加上新添加元素的切片。
+
+当 `s` 的底层数组太小，不足以容纳所有给定的值时，它就会分配一个更大的数组。 返回的切片会指向这个新分配的数组。
+
+（要了解关于切片的更多内容，请阅读文章[Go 切片：用法和本质](https://blog.go-zh.org/go-slices-usage-and-internals)。）
+
+## Range
+
+`for` 循环的 `range` 形式可遍历切片或映射。
+
+当使用 `for` 循环遍历切片时，每次迭代都会返回两个值。 第一个值为当前元素的下标，第二个值为该下标所对应元素的一份副本。
+
+```go
+func main() {
+	for i, v := range pow {
+		fmt.Printf("2**%d = %d\n", i, v)
+	}
+}
+```
+
+可以将下标或值赋予 `_` 来忽略它。
+
+若你只需要索引，去掉 `, value` 的部分即可。
+
+```go
+func main() {
+	pow := make([]int, 10)
+	for i := range pow {
+		pow[i] = 1 << uint(i) // == 2**i
+	}
+	for _, value := range pow {
+		fmt.Printf("%d\n", value)
+	}
+}
+```
+
+## 映射
+
+映射将键映射到值。
+
+映射的零值为 `nil` 。`nil` 映射既没有键，也不能添加键。
+
+`make` 函数会返回给定类型的映射，并将其初始化备用。
+
+```go
+package main
+
+import "fmt"
+
+type Vertex struct {
+	Lat, Long float64
+}
+
+var m map[string]Vertex
+
+func main() {
+	m = make(map[string]Vertex)
+	m["Bell Labs"] = Vertex{
+		40.68433, -74.39967,
+	}
+	fmt.Println(m["Bell Labs"])
+    var mn = map[string]Vertex{
+    	"Bell Labs": Vertex{
+    		40.68433, -74.39967,
+    	},
+    	"Google": Vertex{
+    		37.42202, -122.08408,
+    	},
+    }
+    fmt.Println(mn)
+}
+```
+
+## 修改映射
+
+在映射 `m` 中插入或修改元素：
+
+```
+m[key] = elem
+```
+
+获取元素：
+
+```
+elem = m[key]
+```
+
+删除元素：
+
+```
+delete(m, key)
+```
+
+通过双赋值检测某个键是否存在：
+
+```
+elem, ok = m[key]
+```
+
+若 `key` 在 `m` 中， `ok` 为 `true` ；否则， `ok` 为 `false` 。
+
+若 `key` 不在映射中，那么 `elem` 是该映射元素类型的零值。
+
+同样的，当从 映射 中读取某个不存在的键时，结果是 映射 的元素类型的零值。
+
+**注** ：若 `elem` 或 `ok` 还未声明，你可以使用短变量声明：
+
+```
+elem, ok := m[key]
+```
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	m := make(map[string]int)
+
+	m["Answer"] = 42
+	fmt.Println("The value:", m["Answer"])
+
+	m["Answer"] = 48
+	fmt.Println("The value:", m["Answer"])
+
+	delete(m, "Answer")
+	fmt.Println("The value:", m["Answer"])
+
+	v, ok := m["Answer"]
+	fmt.Println("The value:", v, "Present?", ok)
+}
+```
+
+## 函数值
+
+函数也是值。它们可以像其它值一样传递。
+
+函数值可以用作函数的参数或返回值。
+
+```go
+package main
+
+import (
+	"fmt"
+	"math"
+)
+
+func compute(fn func(float64, float64) float64) float64 {
+	return fn(3, 4)
+}
+
+func main() {
+	hypot := func(x, y float64) float64 {
+		return math.Sqrt(x*x + y*y)
+	}
+	fmt.Println(hypot(5, 12))
+
+	fmt.Println(compute(hypot))
+	fmt.Println(compute(math.Pow))
+}
+
+```
+
+## 函数的闭包
+
+Go 函数可以是一个闭包。闭包是一个函数值，它引用了其函数体之外的变量。 该函数可以访问并赋予其引用的变量的值，换句话说，该函数被“绑定”在了这些变量上。
+
+例如，函数 `adder` 返回一个闭包。每个闭包都被绑定在其各自的 `sum` 变量上。
+
+```go
+package main
+
+import "fmt"
+
+func adder() func(int) int {
+	sum := 0
+	return func(x int) int {
+		sum += x
+		return sum
+	}
+}
+
+func main() {
+	pos, neg := adder(), adder()
+	for i := 0; i < 10; i++ {
+		fmt.Println(
+			pos(i),
+			neg(-2*i),
+		)
+	}
+}
+```
+
