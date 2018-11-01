@@ -10,6 +10,8 @@ import (
 // HelloServer the web server
 func HelloServer(w http.ResponseWriter, req *http.Request) {
     timestamp := time.Now().Unix()
+    // 毫秒 
+    time.Sleep(10 * time.Millisecond)
     io.WriteString(w, strconv.FormatInt(timestamp, 10))
 }
 
