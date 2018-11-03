@@ -6,5 +6,6 @@ import "strings"
 func main() {
     var str = "This is a string"
 	fmt.Printf("%t\n", strings.HasPrefix(str, "Th"))
+	fmt.Printf("%t\n", strings.HasSuffix(str, "ing"))
 
 }
