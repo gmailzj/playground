@@ -1,7 +1,21 @@
 package main
 
 import "fmt"
-import "strconv"
+import (
+    "strconv"
+    "strings"
+)
+
+type IPAddr [4]byte
+
+// TODO: Add a "String() string" method to IPAddr.
+func (p IPAddr) String() string {
+	var ret = [] string{} 
+	for _, value := range p {
+		ret = append(ret, fmt.Sprintf("%d", value))
+	}
+	return fmt.Sprintf("%s", strings.Join(ret, ","))
+}
 
 func main() {
 	
@@ -18,4 +32,12 @@ func main() {
     fmt.Println(str0, str1, str2)
     
     // A 65 65
+    
+    hosts := map[string]IPAddr{
+		"loopback":  {127, 0, 0, 1},
+		"googleDNS": {8, 8, 8, 8},
+	}
+	for name, ip := range hosts {
+		fmt.Printf("%v: %v\n", name, ip)
+	}
 }

@@ -1,8 +1,12 @@
+
+
 ### 在线书籍教程
 
 [build-web-application-with-golang](https://github.com/astaxie/build-web-application-with-golang/blob/master/zh/02.2.md)
 
 [Go语言教程](http://www.runoob.com/go/go-data-types.html)
+
+https://gobyexample.com/regular-expressions
 
 ### Go 命令基础
 
@@ -145,7 +149,78 @@ Go 也有基于架构的类型，例如：int、uint 和 uintptr。
 | 4    | **int**与 uint 一样大小                       |
 | 5    | **uintptr**无符号整型，用于存放一个指针                |
 
+### 约定
 
+fmt.Printf("%格式")
+
+General:
+
+```go
+%v	the value in a default format
+	when printing structs, the plus flag (%+v) adds field names
+%#v	a Go-syntax representation of the value
+%T	a Go-syntax representation of the type of the value
+```
+
+The default format for %v is:
+
+```go
+bool:                    %t
+int, int8 etc.:          %d
+uint, uint8 etc.:        %d, %#x if printed with %#v
+float32, complex64, etc: %g
+string:                  %s
+chan:                    %p
+pointer:                 %p
+```
+
+String and slice of bytes (treated equivalently with these verbs):
+
+```go
+%s	the uninterpreted bytes of the string or slice
+%q	a double-quoted string safely escaped with Go syntax
+%x	base 16, lower-case, two characters per byte
+%X	base 16, upper-case, two characters per byte
+```
+
+Boolean:
+
+```go
+%t	the word true or false
+```
+
+Integer:
+
+```go
+%b	base 2
+%c	the character represented by the corresponding Unicode code point
+%d	base 10
+%o	base 8
+%q	a single-quoted character literal safely escaped with Go syntax.
+%x	base 16, with lower-case letters for a-f
+%X	base 16, with upper-case letters for A-F
+%U	Unicode format: U+1234; same as "U+%04X"
+```
+
+Floating-point and complex constituents:
+
+```go
+%b	decimalless scientific notation with exponent a power of two,
+	in the manner of strconv.FormatFloat with the 'b' format,
+	e.g. -123456p-78
+%e	scientific notation, e.g. -1.234456e+78
+%E	scientific notation, e.g. -1.234456E+78
+%f	decimal point but no exponent, e.g. 123.456
+%F	synonym for %f
+%g	%e for large exponents, %f otherwise. Precision is discussed below.
+%G	%E for large exponents, %F otherwise
+```
+
+Slice && Point:
+
+```
+%p
+```
 
 
 
@@ -194,6 +269,17 @@ func main() {
 
 表达式 `T(v)` 将值 `v` 转换为类型 `T` 。
 
+```go
+*Point(p)        // same as *(Point(p))
+(*Point)(p)      // p is converted to *Point
+<-chan int(c)    // same as <-(chan int(c))
+(<-chan int)(c)  // c is converted to <-chan int
+func()(x)        // function signature func() x
+(func())(x)      // x is converted to func()
+(func() int)(x)  // x is converted to func() int
+func() int(x)    // x is converted to func() int (unambiguous)
+```
+
 一些关于数值的转换：
 
 ```go
@@ -209,6 +295,8 @@ i := 42
 f := float64(i)
 u := uint(f)
 ```
+
+如果对于某些地方的优先级拿不准可以自己加`()`约束.
 
 与 C 不同的是，Go 在不同类型的项之间赋值时需要显式转换
 
@@ -1660,5 +1748,94 @@ func main() {
 	z := Person{"Zaphod Beeblebrox", 9001}
 	fmt.Println(a, z)
 }
+```
+
+```go
+package main
+
+import "fmt"
+import "strings"
+
+type IPAddr [4]byte
+
+// TODO: Add a "String() string" method to IPAddr.
+func (p IPAddr) String() string {
+	var ret = [] string{} 
+	for _, value := range p {
+		ret = append(ret, fmt.Sprintf("%d", value))
+	}
+	return fmt.Sprintf("%s", strings.Join(ret, ","))
+}
+
+func main() {
+	hosts := map[string]IPAddr{
+		"loopback":  {127, 0, 0, 1},
+		"googleDNS": {8, 8, 8, 8},
+	}
+	for name, ip := range hosts {
+		fmt.Printf("%v: %v\n", name, ip)
+	}
+}
+```
+
+## 错误
+
+Go 程序使用 `error` 值来表示错误状态。
+
+与 `fmt.Stringer` 类似， `error` 类型是一个内建接口：
+
+```
+type error interface {
+    Error() string
+}
+```
+
+（与 `fmt.Stringer` 类似， `fmt` 包在打印值时也会满足 `error` 。）
+
+通常函数会返回一个 `error` 值，调用的它的代码应当判断这个错误是否等于 `nil` 来进行错误处理。
+
+```
+i, err := strconv.Atoi("42")
+if err != nil {
+    fmt.Printf("couldn't convert number: %v\n", err)
+    return
+}
+fmt.Println("Converted integer:", i)
+```
+
+`error` 为 nil 时表示成功；非 nil 的 `error` 表示失败。
+
+```
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+type MyError struct {
+	When time.Time
+	What string
+}
+
+func (e *MyError) Error() string {
+	return fmt.Sprintf("at %v, %s",
+		e.When, e.What)
+}
+
+func run() error {
+	return &MyError{
+		time.Now(),
+		"it didn't work",
+	}
+}
+
+func main() {
+	if err := run(); err != nil {
+		fmt.Println(err)
+	}
+}
+
+// 2018-11-08 15:39:37.449579 +0800 CST m=+0.000415854, it didn't work
 ```
 

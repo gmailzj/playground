@@ -20,6 +20,17 @@ func main() {
 	
 	s = append(s, 12, 11, 10, 9)
 	printSlice(s)
+	
+	slice := append([]int{1,2,3},4,5,6)
+	printSlice(slice)
+	s1 := []int{1,2,3}
+	s2 := []int {4,5,6}
+	
+// 	append函数返回值必须有变量接收，不然编译器会报错
+	s3 := append(s1, s2...)
+	printSlice(s1)
+	printSlice(s2)
+	printSlice(s3)
 }
 
 func printSlice(s []int) {
