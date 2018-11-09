@@ -1805,7 +1805,7 @@ fmt.Println("Converted integer:", i)
 
 `error` 为 nil 时表示成功；非 nil 的 `error` 表示失败。
 
-```
+```go
 package main
 
 import (
@@ -1837,5 +1837,231 @@ func main() {
 }
 
 // 2018-11-08 15:39:37.449579 +0800 CST m=+0.000415854, it didn't work
+```
+
+```go
+type ErrNegativeSqrt float64
+
+func (e ErrNegativeSqrt) Error() string {
+	return fmt.Sprintf("cannot Sqrt negative number: %v", float64(e))
+}
+
+
+func Sqrt(x float64) (float64, error) {
+	if(x<0){
+		return x, ErrNegativeSqrt(x)
+	}
+	return 0, nil
+}
+
+
+
+func main() {
+	v, err := Sqrt((12));
+	if  err != nil{
+		fmt.Printf("couldn't convert number: %v\n", err)
+		return 
+	}
+	fmt.Println(v)
+}
+```
+
+## Reader
+
+`io` 包指定了 `io.Reader` 接口， 它表示从数据流的末尾进行读取。
+
+Go 标准库包含了该接口的[许多实现](https://go-zh.org/search?q=Read#Global)， 包括文件、网络连接、压缩和加密等等。
+
+`io.Reader` 接口有一个 `Read` 方法：
+
+```
+func (T) Read(b []byte) (n int, err error)
+```
+
+`Read` 用数据填充给定的字节切片并返回填充的字节数和错误值。 在遇到数据流的结尾时，它会返回一个 `io.EOF` 错误。
+
+示例代码创建了一个 [`strings.Reader`](https://go-zh.org/pkg/strings/#Reader) 并以每次 8 字节的速度读取它的输出。
+
+```go
+package main
+
+import (
+	"fmt"
+	"io"
+	"strings"
+)
+
+func main() {
+	r := strings.NewReader("Hello, Reader!")
+
+	b := make([]byte, 8)
+	for {
+		n, err := r.Read(b)
+		fmt.Printf("n = %v err = %v b = %v\n", n, err, b)
+		fmt.Printf("b[:n] = %q\n", b[:n])
+		if err == io.EOF {
+			break
+		}
+	}
+}
+```
+
+## 图像
+
+[`image`](https://go-zh.org/pkg/image/#Image) 包定义了 `Image` 接口：
+
+```go
+package image
+
+type Image interface {
+	// 颜色模式
+    ColorModel() color.Model
+    // 图片边界
+    Bounds() Rectangle
+    // 某个点的颜色
+    At(x, y int) color.Color
+}
+```
+
+**注意：** `Bounds` 方法的返回值 `Rectangle` 实际上是一个 [`image.Rectangle`](https://go-zh.org/pkg/image/#Rectangle)， 它在 `image` 包中声明。
+
+（请参阅[文档](https://go-zh.org/pkg/image/#Image)了解全部信息。）
+
+`color.Color` 和 `color.Model` 类型也是接口，但是通常因为直接使用预定义的实现 `image.RGBA` 和 `image.RGBAModel` 而被忽视了。这些接口和类型由[`image/color`](https://go-zh.org/pkg/image/color/)包定义。
+
+```go
+package main
+
+import (
+	"fmt"
+	"image"
+)
+
+func main() {
+	m := image.NewRGBA(image.Rect(0, 0, 100, 100))
+	fmt.Println(m.Bounds())
+	fmt.Println(m.At(0, 0).RGBA())
+}
+```
+
+## 信道
+
+信道是带有类型的管道，你可以通过它用信道操作符 `<-` 来发送或者接收值。
+
+```
+ch <- v    // 将 v 发送至信道 ch。
+v := <-ch  // 从 ch 接收值并赋予 v。
+```
+
+（“箭头”就是数据流的方向。）
+
+和映射与切片一样，信道在使用前必须创建：
+
+```
+ch := make(chan int)
+```
+
+默认情况下，发送和接收操作在另一端准备好之前都会阻塞。这使得 Go 程可以在没有显式的锁或竞态变量的情况下进行同步。
+
+以下示例对切片中的数进行求和，将任务分配给两个 Go 程。 一旦两个 Go 程完成了它们的计算，它就能算出最终的结果。
+
+```go
+package main
+
+import "fmt"
+import "math"
+
+func sum(s []int, c chan int) {
+	sum := 0
+	for _, v := range s {
+		sum += v
+	}
+	c <- sum // 将和送入 c
+}
+
+func main() {
+	s := []int{7, 2, 8, -9, 4, 0}
+
+	c := make(chan int)
+	go sum(s[:len(s)/2], c)
+	go sum(s[len(s)/2:], c)
+	x, y := <-c, <-c // 从 c 中接收
+
+	fmt.Println(x, y, x+y)
+	fmt.Println(math.Pow(2,3),2^3)
+	fmt.Println(1<<0)
+}
+```
+
+## 带缓冲的信道
+
+信道可以是 *带缓冲的* 。将缓冲长度作为第二个参数提供给 `make` 来初始化一个带缓冲的信道：
+
+```
+ch := make(chan int, 100)
+```
+
+仅当信道的缓冲区填满后，向其发送数据时才会阻塞。当缓冲区为空时，接受方会阻塞。
+
+修改示例填满缓冲区，然后看看会发生什么。
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	ch := make(chan int, 2)
+	ch <- 1
+	ch <- 2
+	// 错误 缓冲区 满了  
+    // ch <- 3
+	fmt.Println(<-ch)
+	fmt.Println(<-ch)
+	// error  is empty
+	fmt.Println(<-ch)
+
+}
+```
+
+## range 和 close
+
+发送者可通过 `close` 关闭一个信道来表示没有需要发送的值了。接收者可以通过为接收表达式分配第二个参数来测试信道是否被关闭：若没有值可以接收且信道已被关闭，那么在执行完
+
+```
+v, ok := <-ch
+```
+
+之后 `ok` 会被设置为 `false` 。
+
+循环 `for i := range c` 会不断从信道接收值，直到它被关闭。
+
+**注意：** 只有发送者才能关闭信道，而接收者不能。向一个已经关闭的信道发送数据会引发程序恐慌（panic）。
+
+**还要注意：** 信道与文件不同，通常情况下无需关闭它们。只有在必须告诉接收者不再有值需要发送的时候才有必要关闭，例如终止一个 `range` 循环。
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+func fibonacci(n int, c chan int) {
+	x, y := 0, 1
+	for i := 0; i < n; i++ {
+		c <- x
+		x, y = y, x+y
+	}
+	close(c)
+}
+
+func main() {
+	c := make(chan int, 10)
+	go fibonacci(cap(c), c)
+	for i := range c {
+		fmt.Println(i)
+	}
+}
 ```
 
