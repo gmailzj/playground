@@ -1944,7 +1944,27 @@ func main() {
 }
 ```
 
+## Goroutines协程
+
+A *goroutine* is a lightweight thread managed by the Go runtime.
+
+```
+go f(x, y, z)
+```
+
+会启动一个新的 Go 程并执行
+
+```
+f(x, y, z)
+```
+
+`f` 、 `x` 、 `y` 和 `z` 的求值发生在当前的 Go 程中，而 `f` 的执行发生在新的 Go 程中。
+
+Go 程在相同的地址空间中运行，因此在访问共享的内存时必须进行同步。[`sync`](https://go-zh.org/pkg/sync/) 包提供了这种能力，不过在 Go 中并不经常用到，因为还有其它的办法
+
 ## 信道
+
+channel的作用就是在多线程之间传递数据
 
 信道是带有类型的管道，你可以通过它用信道操作符 `<-` 来发送或者接收值。
 
@@ -2062,6 +2082,180 @@ func main() {
 	for i := range c {
 		fmt.Println(i)
 	}
+}
+```
+
+## select 语句
+
+`select` 语句使一个 Go 程可以等待多个通信操作。
+
+`select` 会阻塞到某个分支可以继续执行为止，这时就会执行该分支。当多个分支都准备好时会随机选择一个执行。
+
+```go
+package main
+
+import "fmt"
+
+func fibonacci(c, quit chan int) {
+	x, y := 0, 1
+	for {
+		select {
+		case c <- x:
+			x, y = y, x+y
+		case <-quit:
+			fmt.Println("quit")
+			return
+		}
+	}
+}
+
+func main() {
+	c := make(chan int)
+	quit := make(chan int)
+	go func() {
+		for i := 0; i < 10; i++ {
+			fmt.Println(<-c)
+		}
+		quit <- 0
+	}()
+	fibonacci(c, quit)
+}
+```
+
+## 默认选择
+
+当 `select` 中的其它分支都没有准备好时，`default` 分支就会执行。
+
+为了在尝试发送或者接收时不发生阻塞，可使用 `default` 分支：
+
+```go
+select {
+case i := <-c:
+    // 使用 i
+default:
+    // 从 c 中接收会阻塞时执行
+}
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+)
+
+func main() {
+	tick := time.Tick(100 * time.Millisecond)
+	boom := time.After(500 * time.Millisecond)
+	for {
+		select {
+		case <-tick:
+			fmt.Println("tick.")
+		case <-boom:
+			fmt.Println("BOOM!")
+			return
+		default:
+			fmt.Println("    .")
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+}
+```
+
+## 等价二叉树
+
+不同二叉树的叶节点上可以保存相同的值序列
+
+在大多数语言中，检查两个二叉树是否保存了相同序列的函数都相当复杂。 我们将使用 Go 的并发和信道来编写一个简单的解法。
+
+```
+
+
+本例使用了 tree 包，它定义了类型：
+
+type Tree struct {
+    Left  *Tree
+    Value int
+    Right *Tree
+}
+```
+
+**1.** 实现 `Walk` 函数。
+
+**2.** 测试 `Walk` 函数。
+
+函数 `tree.New(k)` 用于构造一个随机结构的二叉树，它保存了值 `k` 、 `2k` 、 `3k`... `10k` 。
+
+创建一个新的信道 `ch` 并且对其进行步进：
+
+```
+go Walk(tree.New(1), ch)
+```
+
+然后从信道中读取并打印 10 个值。应当是数字 `1, 2, 3, ..., 10` 。
+
+**3.** 用 `Walk` 实现 `Same` 函数来检测 `t1` 和 `t2` 是否存储了相同的值。
+
+**4.** 测试 `Same` 函数。
+
+`Same(tree.New(1), tree.New(1))` 应当返回 `true` ，而 `Same(tree.New(1), tree.New(2))` 应当返回 `false` 。
+
+`Tree` 的文档可在[这里](https://godoc.org/golang.org/x/tour/tree#Tree)找到
+
+```go
+package main
+
+import (
+"golang.org/x/tour/tree"
+"fmt"
+)
+//  发送value，结束后关闭channel
+func Walk(t *tree.Tree, ch chan int){
+    sendValue(t,ch)
+    close(ch)
+}
+//  递归向channel传值
+func sendValue(t *tree.Tree, ch chan int){
+    if t != nil {
+        sendValue(t.Left, ch)
+        ch <- t.Value
+        sendValue(t.Right, ch)
+   }
+}
+
+// 使用写好的Walk函数来确定两个tree对象  是否一样 原理还是判断value值
+func Same(t1, t2 *tree.Tree) bool {
+       ch1 := make(chan int)
+       ch2 := make(chan int)
+       go Walk(t1,ch1)
+       go Walk(t2,ch2)
+       for i := range ch1 {   // ch1 关闭后   for循环自动跳出
+               if i != <- ch2 {
+                      return false
+               }
+       }
+      return true
+}
+
+func main() {
+
+    // 打印 tree.New(1)的值
+    var ch = make(chan int)
+    go Walk(tree.New(1),ch)
+    for v := range ch {
+          fmt.Println(v)
+    }
+    
+    var ch2 = make(chan int)
+    go Walk(tree.New(2),ch2)
+    for v := range ch2 {
+          fmt.Println(v)
+    }
+
+    //  比较两个tree的value值是否相等
+    fmt.Println(Same(tree.New(1), tree.New(1)))
+    fmt.Println(Same(tree.New(1), tree.New(2)))
 }
 ```
 
