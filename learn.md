@@ -1962,7 +1962,7 @@ f(x, y, z)
 
 Go 程在相同的地址空间中运行，因此在访问共享的内存时必须进行同步。[`sync`](https://go-zh.org/pkg/sync/) 包提供了这种能力，不过在 Go 中并不经常用到，因为还有其它的办法
 
-## 信道
+## 信道chan
 
 channel的作用就是在多线程之间传递数据
 
@@ -1971,6 +1971,7 @@ channel的作用就是在多线程之间传递数据
 ```
 ch <- v    // 将 v 发送至信道 ch。
 v := <-ch  // 从 ch 接收值并赋予 v。
+v,ok := <-ch // 如果要知道是否closed得加ok
 ```
 
 （“箭头”就是数据流的方向。）
@@ -2258,4 +2259,252 @@ func main() {
     fmt.Println(Same(tree.New(1), tree.New(2)))
 }
 ```
+
+## sync.Mutex
+
+我们已经看到信道非常适合在各个 Go 程间进行通信。
+
+但是如果我们并不需要通信呢？比如说，若我们只是想保证每次只有一个 Go 程能够访问一个共享的变量，从而避免冲突？
+
+这里涉及的概念叫做 *互斥 （mutual exclusion）* ，我们通常使用 *互斥锁 （Mutex）*这一数据结构来提供这种机制。
+
+Go 标准库中提供了 [`sync.Mutex`](https://go-zh.org/pkg/sync/#Mutex) 互斥锁类型及其两个方法：
+
+- `Lock`
+- `Unlock`
+
+我们可以通过在代码前调用 `Lock` 方法，在代码后调用 `Unlock` 方法来保证一段代码的互斥执行。 参见 `Inc` 方法。
+
+我们也可以用 `defer` 语句来保证互斥锁一定会被解锁。参见 `Value` 方法。
+
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+	"time"
+)
+
+// SafeCounter 的并发使用是安全的。
+type SafeCounter struct {
+	v   map[string]int
+	mux sync.Mutex
+}
+
+// Inc 增加给定 key 的计数器的值。
+func (c *SafeCounter) Inc(key string) {
+	c.mux.Lock()
+	// Lock 之后同一时刻只有一个 goroutine 能访问 c.v
+	c.v[key]++
+	c.mux.Unlock()
+}
+
+// Value 返回给定 key 的计数器的当前值。
+func (c *SafeCounter) Value(key string) int {
+	c.mux.Lock()
+	// Lock 之后同一时刻只有一个 goroutine 能访问 c.v
+	defer c.mux.Unlock()
+	return c.v[key]
+}
+
+func main() {
+	c := SafeCounter{v: make(map[string]int)}
+	for i := 0; i < 1000; i++ {
+		go c.Inc("somekey")
+	}
+
+	time.Sleep(time.Second)
+	fmt.Println(c.Value("somekey"))
+}
+```
+
+### 练习 Web 爬虫
+
+```go
+package main
+
+import (
+	"fmt"
+)
+
+type Fetcher interface {
+	// Fetch returns the body of URL and
+	// a slice of URLs found on that page.
+	// Fetch 返回 URL 的 body 内容，并且将在这个页面上找到的 URL 放到一个 slice 中。
+	Fetch(url string) (body string, urls []string, err error)
+}
+
+type result struct {
+	url, body string
+	urls []string
+	err error
+	depth int
+}
+
+// Crawl uses fetcher to recursively crawl
+// pages starting with url, to a maximum of depth.
+// Crawl 使用 fetcher 从某个 URL 开始递归的爬取页面，直到达到最大深度。
+func Crawl(url string, depth int, fetcher Fetcher) {
+	results := make(chan *result)
+	fetched := make(map[string]bool)
+	fetch   := func(url string, depth int) {
+		body, urls, err := fetcher.Fetch(url)
+		results <- &result{url, body, urls, err, depth}
+	}
+
+	go fetch(url, depth)
+	fetched[url] = true
+
+	// 1 url is currently being fetched in background, loop while fetching
+	for fetching := 1; fetching > 0; fetching-- {
+		res := <- results
+
+		// skip failed fetches
+		if res.err != nil {
+			fmt.Println(res.err)
+			continue
+		}
+
+		fmt.Printf("found: %s %q\n", res.url, res.body)
+
+		// follow links if depth has not been exhausted
+		if res.depth > 0 {
+			for _, u := range res.urls {
+				// don't attempt to re-fetch known url, decrement depth
+				if !fetched[u] {
+					fetching++
+					go fetch(u, res.depth - 1)
+					fetched[u] = true
+				}
+			}
+		}
+	}
+
+	close(results)
+}
+
+func main() {
+	Crawl("http://golang.org/", 4, fetcher)
+}
+
+
+// fakeFetcher is Fetcher that returns canned results.
+type fakeFetcher map[string]*fakeResult
+
+type fakeResult struct {
+	body string
+	urls     []string
+}
+
+func (f *fakeFetcher) Fetch(url string) (string, []string, error) {
+	if res, ok := (*f)[url]; ok {
+		return res.body, res.urls, nil
+	}
+	return "", nil, fmt.Errorf("not found: %s", url)
+}
+
+// fetcher is a populated fakeFetcher.
+var fetcher = &fakeFetcher{
+	"http://golang.org/": &fakeResult{
+		"The Go Programming Language",
+		[]string{
+			"http://golang.org/pkg/",
+			"http://golang.org/cmd/",
+		},
+	},
+	"http://golang.org/pkg/": &fakeResult{
+		"Packages",
+		[]string{
+			"http://golang.org/",
+			"http://golang.org/cmd/",
+			"http://golang.org/pkg/fmt/",
+			"http://golang.org/pkg/os/",
+		},
+	},
+	"http://golang.org/pkg/fmt/": &fakeResult{
+		"Package fmt",
+		[]string{
+			"http://golang.org/",
+			"http://golang.org/pkg/",
+		},
+	},
+	"http://golang.org/pkg/os/": &fakeResult{
+		"Package os",
+		[]string{
+			"http://golang.org/",
+			"http://golang.org/pkg/",
+		},
+	},
+}
+```
+
+## 接下来去哪？
+
+[Go 文档](https://go-zh.org/doc/) 是一个极好的 开始。 它包含了参考、指南、视频等等更多资料。
+
+了解如何组织 Go 代码并在其上工作，参阅 [此视频](http://www.youtube.com/watch?v=XCsL89YtqCs)，或者阅读 [如何编写 Go 代码](https://go-zh.org/doc/code.html)。
+
+如果你需要标准库方面的帮助，请参考 [包手册](https://go-zh.org/pkg/)。如果是语言本身的帮助，阅读[语言规范](https://go-zh.org/ref/spec)是件令人愉快的事情。
+
+进一步探索 Go 的并发模型，参阅 [Go 并发模型](http://www.youtube.com/watch?v=f6kdp27TYZs) ([幻灯片](http://talks.go-zh.org/2012/concurrency.slide)) 以及 [深入 Go 并发模型](https://www.youtube.com/watch?v=QDDwwePbDtw) ([幻灯片](http://talks.go-zh.org/2013/advconc.slide)) 并阅读 [通过通信共享内存](https://go-zh.org/doc/codewalk/sharemem/) 的代码之旅。
+
+想要开始编写 Web 应用，请参阅 [一个简单的编程环境](http://vimeo.com/53221558) ([幻灯片](http://talks.go-zh.org/2012/simple.slide)) 并阅读 [编写 Web 应用](https://go-zh.org/doc/articles/wiki/)的指南.
+
+[函数：Go 中的一等公民](https://go-zh.org/doc/codewalk/functions/)展示了有趣的函数类型。
+
+[Go 博客](http://blog.go-zh.org/) 有着众多关于 Go 的文章和信息。
+
+[mikespook 的博客](http://www.mikespook.com/tag/golang/)中有大量中文的关于 Go 的文章和翻译。
+
+开源电子书 [Go Web 编程](https://github.com/astaxie/build-web-application-with-golang) 和 [Go 入门指南](https://github.com/Unknwon/the-way-to-go_ZH_CN) 能够帮助你更加深入的了解和学习 Go 语言。
+
+访问 [go-zh.org](https://go-zh.org/) 了解更多内容。
+
+### Go模块的使用
+
+Go模块是Go语言的依赖包管理工具。
+
+1、Go1.11及以后版本才能使用。 
+2、Go1.11需要设置环境变量 GO111MODULE 为 on（新特性开关，按照Go语言惯例，mod首次在go1.11版本中使用，go1.12及以后版本这个设置应该不会用了）。
+
+```go
+GO111MODULE=on  go run .
+```
+
+mod是模块英文modules的简写。
+
+常用的命令行：
+
+- `go help mod`查看帮助。
+- `go mod init <项目模块名称>`初始化模块，会在项目根目录下生成 `go.mod` 文件。参数`<项目模块名称>`是非必写的，但如果你的项目还没有代码编写，这个参数能快速初始化模块。如果之前使用其它依赖管理工具(比如dep，glide等)，mod会自动接管原来依赖关系。
+- `go mod tidy`根据go.mod文件来处理依赖关系。
+- `go mod vendor`将依赖包复制到项目下的 vendor 目录。建议一些使用了被墙包的话可以这么处理，方便用户快速使用命令`go build -mod=vendor`编译。
+- `go list -m all`显示依赖关系。`go list -m -json all`显示详细依赖关系。
+- `go mod download <path@version>`下载依赖。参数`<path@version>`是非必写的，path是包的路径，version是包的版本。
+- 其它命令可以通过`go help mod`来查看。
+
+go.mod文件是文本文件，是可以自己手动编辑的。 
+Go模块版本控制的下载文件及信息会存储到GOPATH的pkg/mod文件夹里。 
+使用了Go模块，源码不一定要在GOPATH中进行。
+
+go.mod文件必须要提交到git仓库
+问：启用Go模块以后，使用go get xxx时会报错提示"go: cannot find main module; see 'go help modules'"，这个是怎么回事？
+答：因为没有找到go.mod文件，所以会报错。你只要在项目根目录下生成一个go.mod文件就可以了。
+
+问：如何在Go模块里使用本地依赖包？
+答：首先在项目的go.mod文件的require处添加依赖包，然后在replace处添加替换本地依赖包(路径要处理妥当)。比如：
+
+require (
+    mytest v0.0.0
+)
+replace (
+    mytest v0.0.0 => ../mytest
+)
+
+##### 参考资料
+
+- 语义化版本(中文) <https://semver.org/lang/zh-CN/>
+- Go模块官方文档(英文) [https://github.com/golang/go/...](https://github.com/golang/go/wiki/Modules)
+- Go模块命令说明(英文) [https://golang.google.cn/cmd/...](https://golang.google.cn/cmd/go/#hdr-Module_maintenance)
 
