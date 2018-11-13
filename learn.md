@@ -1,6 +1,6 @@
 
 
-### 在线书籍教程
+## 在线书籍教程
 
 [build-web-application-with-golang](https://github.com/astaxie/build-web-application-with-golang/blob/master/zh/02.2.md)
 
@@ -8,9 +8,9 @@
 
 https://gobyexample.com/regular-expressions
 
-### Go 命令基础
+## Go 命令基础
 
-#### go env
+### go env
 
 | 名称          | 说明                   |
 | ----------- | -------------------- |
@@ -27,7 +27,7 @@ https://gobyexample.com/regular-expressions
 | GOROOT      | Go语言的安装目录的绝对路径。      |
 | GOTOOLDIR   | Go工具目录的绝对路径。         |
 
-#### go build
+### go build
 
 go build 命令用于编译我们指定的源码文件或代码包以及它们的依赖包。
 
@@ -49,7 +49,19 @@ go build -o fn -v main.go
 | -work | 打印出编译时生成的临时工作目录的路径，并在编译结束时保留它。在默认情况下，编译结束时会删除该目录。 |
 | -x    | 打印编译期间所用到的其它命令。注意它与`-n`标记的区别。            |
 
-### GO 语法基础
+## Go 语言最主要的特性：
+
+- 自动垃圾回收
+- 更丰富的内置类型
+- 函数多返回值
+- 错误处理
+- 匿名函数和闭包
+- 类型和接口
+- 并发编程
+- 反射
+- 语言交互性
+
+## GO 语法基础
 
 Go 语言的基础组成有以下几个部分：
 
@@ -68,7 +80,7 @@ Go 程序可以由多个标记组成，可以是关键字，标识符，常量�
 
 程序中可能会使用到这些标点符号：.、,、;、: 和 …。
 
-#### 标识符
+### 标识符
 
 标识符用来命名变量、类型等程序实体。一个标识符实际上就是一个或是多个字母(A~Z和a~z)数字(0~9)、下划线_组成的序列，但是第一个字符必须是字母或下划线而不能是数字。
 
@@ -85,7 +97,7 @@ myname50   _temp   j   a23b9   retVal
 - case（Go 语言的关键字）
 - a+b（运算符是不允许的）
 
-#### 关键字
+### 关键字
 
 下面列举了 Go 代码中会使用到的 25 个关键字或保留字：
 
@@ -106,7 +118,7 @@ myname50   _temp   j   a23b9   retVal
 
 
 
-### Go语言数据类型
+## Go语言数据类型
 
 在 Go 编程语言中，数据类型用于声明函数和变量。
 
@@ -119,7 +131,7 @@ Go 语言按类别有以下几种数据类型：
 | 3    | **字符串类型:**字符串就是一串固定长度的字符连接起来的字符序列。Go的字符串是由单个字节连接起来的。Go语言的字符串的字节使用UTF-8编码标识Unicode文本。 |
 | 4    | **派生类型:**包括：(a) 指针类型（Pointer）(b) 数组类型(c) 结构化类型(struct)(d) Channel 类型(e) 函数类型(f) 切片类型(g) 接口类型（interface）(h) Map 类型 |
 
-#### 数字类型
+### 数字类型
 
 Go 也有基于架构的类型，例如：int、uint 和 uintptr。
 
@@ -224,9 +236,9 @@ Slice && Point:
 
 
 
-### Go语言基础语法
+## Go语言基础语法
 
-#### 变量的初始化
+### 变量的初始化
 
 变量声明可以包含初始值，每个变量对应一个。
 
@@ -246,7 +258,7 @@ func main() {
 
 ```
 
-## 短变量声明
+### 短变量声明
 
 在函数中，简洁赋值语句 `:=` 可在类型明确的地方代替 `var` 声明。
 
@@ -590,7 +602,7 @@ result:
 */
 ```
 
-## 结构体
+## 结构体struct
 
 一个结构体（`struct`）就是一个字段的集合。
 
@@ -637,6 +649,74 @@ func main() {
 	fmt.Println(v)
 }
 ```
+
+### struct成员变量标签tag
+
+在处理json格式字符串的时候，经常会看到声明struct结构的时候，属性的右侧还有小米点括起来的内容。形如
+
+```go
+type User struct {
+    UserId   int    `json:"user_id" bson:"user_id"`
+    UserName string `json:"user_name" bson:"user_name"`
+}
+```
+
+在golang中，命名都是推荐都是用驼峰方式，并且在首字母大小写有特殊的语法含义：包外无法引用。但是由经常需要和其它的系统进行数据交互，例如转成json格式，存储到mongodb啊等等。这个时候如果用属性名来作为键值可能不一定会符合项目要求。
+
+所以呢就多了小米点的内容，在golang中叫标签（Tag），在转换成其它数据格式的时候，会使用其中特定的字段作为键值。例如上例在转成json格式：
+
+```go
+u := &User{UserId: 1, UserName: "tony"}
+j, _ := json.Marshal(u)
+fmt.Println(string(j))
+// 输出内容：{"user_id":1,"user_name":"tony"}
+
+// 如果在属性中不增加标签说明，则输出：
+// {"UserId":1,"UserName":"tony"}
+```
+
+可以看到直接用struct的属性名做键值。
+
+### struct成员变量标签Tag获取
+
+用反射包（reflect）中的方法来获取
+
+```go
+package main
+ 
+import (
+    "encoding/json"
+    "fmt"
+    "reflect"
+)
+ 
+func main() {
+    type User struct {
+        UserId   int    `json:"user_id" bson:"user_id"`
+        UserName string `json:"user_name" bson:"user_name"`
+    }
+    // 输出json格式
+    u := &User{UserId: 1, UserName: "tony"}
+    j, _ := json.Marshal(u)
+    fmt.Println(string(j))
+    // 输出内容：{"user_id":1,"user_name":"tony"}
+ 
+    // 获取tag中的内容
+    t := reflect.TypeOf(u)
+    elem := t.Elem();
+    field := elem.Field(0)
+    fmt.Println(field.Tag.Get("json"))
+    // 输出：user_id
+    fmt.Println(field.Tag.Get("bson"))
+    // 输出：user_id
+    
+    for i := 0; i < elem.NumField(); i++ {
+        fmt.Println(elem.Field(i).Tag) //将tag输出出来
+    }
+}
+```
+
+
 
 ## 数组
 
@@ -2496,13 +2576,13 @@ go.mod文件必须要提交到git仓库
 答：首先在项目的go.mod文件的require处添加依赖包，然后在replace处添加替换本地依赖包(路径要处理妥当)。比如：
 
 require (
-    mytest v0.0.0
+​    mytest v0.0.0
 )
 replace (
-    mytest v0.0.0 => ../mytest
+​    mytest v0.0.0 => ../mytest
 )
 
-##### 参考资料
+### Go模块参考资料
 
 - 语义化版本(中文) <https://semver.org/lang/zh-CN/>
 - Go模块官方文档(英文) [https://github.com/golang/go/...](https://github.com/golang/go/wiki/Modules)
