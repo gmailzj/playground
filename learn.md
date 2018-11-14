@@ -161,7 +161,7 @@ Go 也有基于架构的类型，例如：int、uint 和 uintptr。
 | 4    | **int**与 uint 一样大小                       |
 | 5    | **uintptr**无符号整型，用于存放一个指针                |
 
-### 约定
+### 格式化约定
 
 fmt.Printf("%格式")
 
@@ -1492,6 +1492,25 @@ func main() {
 }
 ```
 
+模拟面向对象
+
+```go
+package puser
+
+struct user {
+    int a
+    int b
+    int c
+}
+
+func (this *user) sum() int{
+    return this.a + this.b + this.c
+}
+
+```
+
+
+
 ## 接口
 
 **接口类型** 是由一组方法签名定义的集合。
@@ -2554,7 +2573,15 @@ GO111MODULE=on  go run .
 
 mod是模块英文modules的简写。
 
-常用的命令行：
+#### GO111MODULE 环境变量
+
+`GO111MODULE`可以设置为三个字符串值之一：off，on或auto（默认值）。
+
+- off，则go命令从不使用新模块支持。它查找vendor 目录和GOPATH以查找依赖关系;也就是继续使用“GOPATH模式”。
+- on，则go命令需要使用模块，go 会忽略 GOPATH 和 vendor 文件夹，只根据 go.mod下载依赖。
+- auto或未设置，则go命令根据当前目录启用或禁用模块支持。仅当当前目录位于GOPATH/src之外并且其本身包含go.mod文件或位于包含go.mod文件的目录下时，才启用模块支持。
+
+#### 常用的命令行：
 
 - `go help mod`查看帮助。
 - `go mod init <项目模块名称>`初始化模块，会在项目根目录下生成 `go.mod` 文件。参数`<项目模块名称>`是非必写的，但如果你的项目还没有代码编写，这个参数能快速初始化模块。如果之前使用其它依赖管理工具(比如dep，glide等)，mod会自动接管原来依赖关系。
