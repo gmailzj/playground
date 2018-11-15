@@ -1,5 +1,8 @@
 
 
+Go 的并发属于 CSP 并发模型的一种实现，CSP 并发模型的核心概念是：“不要通过共享内存来通信，而应该通 
+过通信来共享内存”。这在 Go 语言中的实现就是 Goroutine 和 Channel。
+
 ## 在线书籍教程
 
 [build-web-application-with-golang](https://github.com/astaxie/build-web-application-with-golang/blob/master/zh/02.2.md)

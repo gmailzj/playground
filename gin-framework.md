@@ -1,3 +1,5 @@
+
+
 # Gin框架中文文档
 
 ### 安装
@@ -211,6 +213,8 @@ router.GET("/json", func(c *gin.Context) {
 
 ##### 视图响应
 
+相当于MVC中的view
+
 ```go
 //加载模板
 router.LoadHTMLGlob("templates/*")
@@ -245,6 +249,25 @@ templates/posts/index.tmpl
 </html>
 {{ end }}
 ```
+
+自定义模板引擎
+
+```go
+router.Delims("{[{", "}]}")
+router.SetFuncMap(template.FuncMap{
+    "formatAsDate": formatAsDate,
+})
+router.LoadHTMLFiles("./testdata/template/raw.tmpl")
+
+router.GET("/raw", func(c *gin.Context) {
+    c.HTML(http.StatusOK, "raw.tmpl", map[string]interface{}{
+        "now": time.Date(2017, 07, 01, 0, 0, 0, 0, time.UTC),
+    })
+})
+
+```
+
+
 
 ##### 文件响应
 
@@ -310,3 +333,59 @@ router.Use(gin.Recovery())
 ```
 router.GET("/benchmark", MyMiddelware(), benchEndpoint)
 ```
+
+
+
+
+
+### 表格
+
+| 后端接收                     | 传递方式               | 解释                                                   |
+| ---------------------------- | ---------------------- | ------------------------------------------------------ |
+| c.Param                      | 路由参数 `url/:params` | 返回url参数的值,是c.Params.ByName(key)的简写           |
+| c.DefaultParam               | url/*params            | c.DefaultParam(“params”, “Guest”) 如果没参数,给默认值  |
+| c.PostForm                   | form提交               | 从post urlencoded 表单或多表单返回指定的键.            |
+| c.DefaultPostForm            | form提交               | c.DefaultPostForm(“nick”, “anonymous”) 给默认值        |
+| c.PostFormArray              | form提交,默认          | 返回切片,长度取决于参数数量 c.PostFormArray(“keys[]”)  |
+| c.Query                      | url?part1=1&part2=2    | url? 后面的参数                                        |
+| c.DefaultQuery               | url?part1=1&part2=2    | c.DefaultQuery(“part3”, “Guest”) 如果没这参数,给默认值 |
+| c.QueryArray                 | url?part1=1&part2=2    | url? 后面的切片参数                                    |
+| c.Request.FormFile(“upload”) | 文件上传               | file, header , err := c.Request.FormFile(“upload”) …   |
+| c.Request.FormValue          | post的json参数         |                                                        |
+| c.Bind                       | form绑定,用于验证      |                                                        |
+| c.BindJSON                   | json绑定               | 前端是json提交 application/json                        |
+
+| 后端发布   | 解释         | 举例                                                         |
+| ---------- | ------------ | ------------------------------------------------------------ |
+| c.String   | 发布字符串   | c.String(http.StatusOK,”HELLO!”)                             |
+| c.JSON     | 发布json格式 | c.JSON(HTTP.StatusOK,gin.H{“rows”,rows}) // rows,随意        |
+| c.XML      | 发布xml格式  | c.XML(http.StatusOK, gin.H{“message”: “hey”, “status”: http.StatusOK}) |
+| c.YAML     | 发布yaml格式 | c.YAML(http.StatusOK, gin.H{“message”: “hey”})               |
+| c.HTML     | 模板渲染     | c.HTML(http.StatusOK, “posts/index.tmpl”, gin.H{“title”: “Posts”}) |
+| c.Redirect | 重定向       | c.Redirect(http.StatusMovedPermanently, “<https://www.google.com/>“) |
+
+| 中间件相关 | 解释                       |
+| ---------- | -------------------------- |
+| c.Set      | c.Set(“example”, “12345”)  |
+| c.Next     | c.Next() request前后分割点 |
+| c.Writer   | c.Writer.Status() 状态     |
+| c.MustGet  | 是否存在键                 |
+| c.Copy     | c.Copy()                   |
+
+> 可能的请求方式
+
+| 路由的请求方式                               | 解释                                                         |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| Use(…HandlerFunc) IRoutes                    | 中间件                                                       |
+| Handle(string, string, …HandlerFunc) IRoutes |                                                              |
+| Any(string, …HandlerFunc) IRoutes            | 接收任意的请求类型 `GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE, CONNECT, TRACE` |
+| GET(string, …HandlerFunc) IRoutes            | 类似`router.Handle("GET", path, handle)`                     |
+| POST(string, …HandlerFunc) IRoutes           |                                                              |
+| DELETE(string, …HandlerFunc) IRoutes         |                                                              |
+| PATCH(string, …HandlerFunc) IRoutes          |                                                              |
+| PUT(string, …HandlerFunc) IRoutes            |                                                              |
+| OPTIONS(string, …HandlerFunc) IRoutes        |                                                              |
+| HEAD(string, …HandlerFunc) IRoutes           |                                                              |
+| StaticFile(string, string) IRoutes           | 静态`文件`路由 `router.StaticFile("favicon.ico", "./resources/favicon.ico")` |
+| Static(string, string) IRoutes               | 静态`文件夹`路由 `router.Static("/路由","./文件夹目录")`     |
+| StaticFS(string, http.FileSystem) IRoutes    | 静态`文件`路由 `router.Static("/路由",gin.Dir("FileSystem"))` |
