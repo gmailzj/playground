@@ -286,6 +286,9 @@ import (
 
 ### 导出名
 
+- 大写字母开头的变量是可导出的，也就是其它包可以读取的，是公有变量；小写字母开头的就是不可导出的，是私有变量。
+- 大写字母开头的函数也是一样，相当于`class`中的带`public`关键词的公有函数；小写字母开头的就是有`private`关键词的私有函数。
+
 在 Go 中，如果一个名字以大写字母开头，那么它就是已导出的。 例如， `Pizza` 就是个已导出名， `Pi` 也同样，它导出自 `math` 包。
 
 `pizza` 和 `pi` 并未以大写字母开头，所以它们是未导出的。
@@ -457,9 +460,70 @@ c:=a + b
 //会产生错误：invalid operation: a + b (mismatched types int8 and int32)
 ```
 
+#### 字符串
 
+Go中的字符串都是采用`UTF-8`字符集编码。字符串是用一对双引号（`""`）或反引号（`` ` `` `）括起来定义，它的类型是`string`。
 
-### 类型转换
+在Go中字符串是不可变的，例如下面的代码编译时会报错：cannot assign to s[0]
+
+```Go
+var s string = "hello"
+s[0] = 'c'
+```
+
+但如果真的想要修改怎么办呢？下面的代码可以实现：
+
+```Go
+s := "hello"
+c := []byte(s)  // 将字符串 s 转换为 []byte 类型
+c[0] = 'c'
+s2 := string(c)  // 再转换回 string 类型
+fmt.Printf("%s\n", s2)
+```
+
+Go中可以使用`+`操作符来连接两个字符串：
+
+```Go
+s := "hello,"
+m := " world"
+a := s + m
+fmt.Printf("%s\n", a)
+```
+
+修改字符串也可写为：
+
+```Go
+s := "hello"
+s = "c" + s[1:] // 字符串虽不能更改，但可进行切片操作
+fmt.Printf("%s\n", s)
+```
+
+如果要声明一个多行的字符串怎么办？可以通过`` `来声明：
+
+```
+m := `hello
+    world`
+```
+
+`` ` 括起的字符串为Raw字符串，即字符串在代码中的形式就是打印时的形式，它没有字符转义，换行也将原样输出。例如本例中会输出：
+
+```
+hello
+    world
+```
+
+#### 错误类型
+
+Go内置有一个`error`类型，专门用来处理错误信息，Go的`package`里面还专门有一个包`errors`来处理错误：
+
+```Go
+err := errors.New("emit macho dwarf: elf header corrupted")
+if err != nil {
+    fmt.Print(err)
+}
+```
+
+#### 类型转换
 
 表达式 `T(v)` 将值 `v` 转换为类型 `T` 。
 
@@ -492,9 +556,9 @@ u := uint(f)
 
 如果对于某些地方的优先级拿不准可以自己加`()`约束.
 
-与 C 不同的是，Go 在不同类型的项之间赋值时需要显式转换
+与 C 不同的是，**Go 在不同类型的项之间赋值时需要显式转换**
 
-### 类型推导
+#### 类型推导
 
 在声明一个变量而不指定其类型时（即使用不带类型的 `:=` 语法 或 `var =` 表达式语法）， 变量的类型由右值推导得出。
 
@@ -526,7 +590,7 @@ func main() {
 }
 ```
 
-### 常量
+#### 常量
 
 所谓常量，也就是在程序编译阶段就确定下来的值，而程序在运行时无法改变该值。
 
@@ -542,9 +606,70 @@ const constantName = value
 const Pi float32 = 3.1415926
 ```
 
+#### iota枚举
 
+Go里面有一个关键字`iota`，这个关键字用来声明`enum`的时候采用，它默认开始值是0，const中每增加一行加1：
 
-### for
+```Go
+const (
+    x = iota // x == 0
+    y = iota // y == 1
+    z = iota // z == 2
+    w        // 常量声明省略值时，默认和之前一个值的字面相同。这里隐式地说w = iota，因此w == 3。其实上面y和z可同样不用"= iota"
+)
+
+const v = iota // 每遇到一个const关键字，iota就会重置，此时v == 0
+
+const (
+    h, i, j = iota, iota, iota //h=0,i=0,j=0 iota在同一行值相同
+)
+
+const (
+    a       = iota //a=0
+    b       = "B"
+    c       = iota             //c=2
+    d, e, f = iota, iota, iota //d=3,e=3,f=3
+    g       = iota             //g = 4
+)
+```
+
+#### 错误类型
+
+Go内置有一个`error`类型，专门用来处理错误信息，Go的`package`里面还专门有一个包`errors`来处理错误：
+
+```Go
+err := errors.New("emit macho dwarf: elf header corrupted")
+if err != nil {
+    fmt.Print(err)
+}
+```
+
+### 基础流程语法
+
+#### 分组声明
+
+可以分组写成如下形式：
+
+```Go
+import(
+    "fmt"
+    "os"
+)
+
+const(
+    i = 100
+    pi = 3.1415
+    prefix = "Go_"
+)
+
+var(
+    i int
+    pi float32
+    prefix string
+)
+```
+
+#### for
 
 Go 只有一种循环结构： `for` 循环。
 
@@ -572,7 +697,7 @@ func main() {
 }
 ```
 
-### for 是 Go 中的 “while”
+#### for 是 Go 中的 “while”
 
 此时你可以去掉分号，因为 C 的 `while` 在 Go 中叫做 `for` 。
 
@@ -587,7 +712,7 @@ func main() {
 
 ```
 
-### if
+#### if
 
 Go 的 `if` 语句与 `for` 循环类似，表达式外无需小括号 `( )` ，而大括号 `{ }` 则是必须的。
 
@@ -597,7 +722,7 @@ if x < 0 {
 }
 ```
 
-### if 的简短语句
+#### if 的简短语句
 
 同 `for` 一样， `if` 语句可以在条件表达式前执行一个简单的语句。
 
@@ -612,7 +737,7 @@ func pow(x, n, lim float64) float64 {
 }
 ```
 
-### if 和 else
+#### if 和 else
 
 在 `if` 的简短语句中声明的变量同样可以在任何对应的 `else` 块中使用。
 
@@ -628,7 +753,7 @@ func pow(x, n, lim float64) float64 {
 }
 ```
 
-### switch
+#### switch
 
 你大概已经知道 `switch` 语句的样子了。
 
@@ -650,7 +775,7 @@ func main() {
 }
 ```
 
-### switch 的求值顺序
+#### switch 的求值顺序
 
 switch 的 case 语句从上到下顺次执行，直到匹配成功时停止。
 
@@ -665,7 +790,7 @@ case f():
 
 在 `i==0` 时 `f` 不会被调用。）
 
-### 没有条件的 switch
+#### 没有条件的 switch
 
 没有条件的 switch 同 `switch true` 一样。
 
@@ -685,7 +810,7 @@ func main() {
 }
 ```
 
-### defer
+#### defer
 
 defer 语句会将函数推迟到外层函数返回之后执行。
 
@@ -701,7 +826,7 @@ func main() {
 //world
 ```
 
-### defer 栈
+#### defer 栈
 
 推迟的函数调用会被压入一个栈中。 当外层函数返回时，被推迟的函数会按照后进先出的顺序调用。
 
@@ -773,8 +898,9 @@ package main
 import "fmt"
 
 func main() {
+    
+    
 	i, j := 42, 2701
-
 	p := &i         // point to i
 	fmt.Println(*p) // read i through the pointer
 	*p = 21         // set i through the pointer
@@ -839,6 +965,58 @@ func main() {
 	fmt.Println(v)
 }
 ```
+
+Go支持只提供类型，而不写字段名的方式，也就是**匿名字段**，也称为嵌入字段。
+
+当匿名字段是一个struct的时候，那么这个struct所拥有的全部字段都被隐式地引入了当前定义的这个struct。
+
+```go
+type Human struct {
+    name string
+    age int
+    weight int
+}
+
+type Student struct {
+    Human  // 匿名字段，那么默认Student就包含了Human的所有字段
+    speciality string
+}
+```
+
+通过匿名访问和修改字段相当的有用，但是不仅仅是struct字段，所有的内置类型和自定义类型都是可以作为匿名字段的
+
+```go
+type Student struct {
+    Human  // 匿名字段，那么默认Student就包含了Human的所有字段
+    speciality string
+    int    // 内置类型作为匿名字段
+}
+```
+
+```go
+package main
+
+import "fmt"
+
+type Human struct {
+    name string
+    age int
+    weight int
+}
+type Student struct {
+    Human  // 匿名字段，struct
+    int    // 内置类型作为匿名字段
+    speciality string
+    int32 // 不能是int 重复 
+}
+func main() {
+    jane := Student{Human:Human{"Jane", 35, 100}, speciality:"Biology"}
+    jane.int = 15
+    fmt.Println(jane)
+}
+```
+
+
 
 ### struct成员变量标签tag
 
@@ -912,6 +1090,12 @@ func main() {
 
 类型 `[n]T` 表示拥有 `n` 个 `T` 类型的值的数组。
 
+```Go
+var arr [n]type
+```
+
+在`[n]type`中，`n`表示数组的长度，`type`表示存储元素的类型。对数组的操作和其它语言类似，都是通过`[]`来进行读取或赋值：
+
 表达式
 
 ```
@@ -920,7 +1104,28 @@ var a [10]int
 
 会将变量 `a` 声明为拥有有 10 个整数的数组。
 
-数组的长度是其类型的一部分，因此数组不能改变大小。 这看起来是个限制，不过没关系， Go 提供了更加便利的方式来使用数组。
+由于长度也是数组类型的一部分，因此数组不能改变大小，例如`[3]int`与`[4]int`是不同的类型，数组也就不能改变长度。数组之间的赋值是值的赋值
+
+当把一个数组作为参数传入函数的时候，传入的其实是该数组的副本，而不是它的指针。如果要使用指针，那么就需要用到后面介绍的`slice`类型了
+
+```Go
+a := [3]int{1, 2, 3} // 声明了一个长度为3的int数组
+
+b := [10]int{1, 2, 3} // 声明了一个长度为10的int数组，其中前三个元素初始化为1、2、3，其它默认为0
+
+c := [...]int{4, 5, 6} // 可以省略长度而采用`...`的方式，Go会自动根据元素个数来计算长度
+```
+二维数组：
+
+```Go
+// 声明了一个二维数组，该数组以两个数组作为元素，其中每个数组中又有4个int类型的元素
+doubleArray := [2][4]int{[4]int{1, 2, 3, 4}, [4]int{5, 6, 7, 8}}
+
+// 上面的声明可以简化，直接忽略内部的类型
+easyArray := [2][4]int{{1, 2, 3, 4}, {5, 6, 7, 8}}
+```
+
+
 
 ```go
 package main
@@ -944,6 +1149,10 @@ func main() {
 ```
 
 ### 切片
+
+在很多应用场景中，数组并不能满足我们的需求。在初始定义数组时，我们并不知道需要多大的数组，因此我们就需要“动态数组”。在Go里面这种数据结构叫`slice`
+
+`slice`并不是真正意义上的动态数组，而是一个引用类型。`slice`总是指向一个底层`array`，`slice`的声明也可以像`array`一样，只是不需要长度。
 
 每个数组的大小都是固定的。 而切片则为数组元素提供动态大小的、灵活的视角。 在实践中，切片比数组更常用。
 
@@ -980,6 +1189,29 @@ func main() {
 	var s []int = primes[1:4]
 	fmt.Println(s)
 }
+```
+
+`slice`可以从一个数组或一个已经存在的`slice`中再次声明。`slice`通过`array[i:j]`来获取，其中`i`是数组的开始位置，`j`是结束位置，但不包含`array[j]`，它的长度是`j-i`。
+
+下面这个例子展示了更多关于`slice`的操作：
+
+```Go
+// 声明一个数组
+var array = [10]byte{'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'}
+// 声明两个slice
+var aSlice, bSlice []byte
+
+// 演示一些简便操作
+aSlice = array[:3] // 等价于aSlice = array[0:3] aSlice包含元素: a,b,c
+aSlice = array[5:] // 等价于aSlice = array[5:10] aSlice包含元素: f,g,h,i,j
+aSlice = array[:]  // 等价于aSlice = array[0:10] 这样aSlice包含了全部的元素
+
+// 从slice中获取slice
+aSlice = array[3:7]  // aSlice包含元素: d,e,f,g，len=4，cap=7
+bSlice = aSlice[1:3] // bSlice 包含aSlice[1], aSlice[2] 也就是含有: e,f
+bSlice = aSlice[:3]  // bSlice 包含 aSlice[0], aSlice[1], aSlice[2] 也就是含有: d,e,f
+bSlice = aSlice[0:5] // 对slice的slice可以在cap范围内扩展，此时bSlice包含：d,e,f,g,h
+bSlice = aSlice[:]   // bSlice包含所有aSlice的元素: d,e,f,g
 ```
 
 ### 切片就像数组的引用
@@ -1247,6 +1479,8 @@ map [KeyType ] ValueType { key1 : value1, key2: value2, ... , keyN : valueN}
 
 `make` 函数会返回给定类型的映射，并将其初始化备用。
 
+`map`的读取和设置也类似`slice`一样，通过`key`来操作，只是`slice`的`index`只能是｀int｀类型，而`map`多了很多类型，可以是`int`，可以是`string`及所有完全定义了`==`与`!=`操作的类型。
+
 ```go
 package main
 
@@ -1336,6 +1570,30 @@ func main() {
 }
 ```
 
+使用map过程中需要注意的几点：
+
+- `map`是无序的，每次打印出来的`map`都会不一样，它不能通过`index`获取，而必须通过`key`获取
+- `map`的长度是不固定的，也就是和`slice`一样，也是一种引用类型
+- 内置的`len`函数同样适用于`map`，返回`map`拥有的`key`的数量
+- `map`的值可以很方便的修改，通过`numbers["one"]=11`可以很容易的把key为`one`的字典值改为`11`
+- `map`和其他基本型别不同，它不是thread-safe，**在多个go-routine存取时，必须使用mutex lock机制**
+
+
+
+#### make、new操作
+
+`make`用于内建类型（`map`、`slice` 和`channel`）的内存分配。`new`用于各种类型的内存分配。
+
+内建函数`new`本质上说跟其它语言中的同名函数功能一样：`new(T)`分配了零值填充的`T`类型的内存空间，并且返回其地址，即一个`*T`类型的值。用Go的术语说，它返回了一个指针，指向新分配的类型`T`的零值。有一点非常重要：
+
+> `new`返回指针。
+
+内建函数`make(T, args)`与`new(T)`有着不同的功能，make只能创建`slice`、`map`和`channel`，并且返回一个有初始值(非零)的`T`类型，而不是`*T`。本质来讲，导致这三个类型有所不同的原因是指向数据结构的引用在使用前必须被初始化。例如，一个`slice`，是一个包含指向数据（内部`array`）的指针、长度和容量的三项描述符；在这些项目被初始化之前，`slice`为`nil`。对于`slice`、`map`和`channel`来说，`make`初始化了内部的数据结构，填充适当的值。
+
+> `make`返回初始化后的（非零）值。
+
+
+
 ## 函数值
 
 函数也是值。它们可以像其它值一样传递。
@@ -1399,6 +1657,10 @@ func main() {
 ## 方法
 
 Go 没有类。不过你可以为结构体类型定义方法。
+
+```go
+func (r ReceiverType) funcName(parameters) (results)
+```
 
 方法就是一类带特殊的 **接收者** 参数的函数。
 
@@ -1491,6 +1753,8 @@ func main() {
 试着移除第 16 行 `Scale` 函数声明中的 `*` ，观察此程序的行为如何变化。
 
 若使用值接收者，那么 `Scale` 方法会对原始 `Vertex` 值的副本进行操作。 （对于函数的其它参数也是如此。） `Scale` 方法必须用指针接受者来更改 `main` 函数中声明的 `Vertex` 的值。
+
+方法的Receiver是以值传递，而非引用传递，是的，Receiver还可以是指针, 两者的差别在于, 指针作为Receiver会对实例对象的内容发生操作,而普通类型作为Receiver仅仅是以副本作为操作对象,并不对原实例对象发生操作
 
 ```go
 type Vertex struct {
@@ -1698,6 +1962,48 @@ func (this *user) sum() int{
 }
 
 ```
+#### method重写
+
+```
+package main
+
+import "fmt"
+
+type Human struct {
+    name string
+    age int
+    phone string
+}
+
+type Student struct {
+    Human //匿名字段
+    school string
+}
+
+type Employee struct {
+    Human //匿名字段
+    company string
+}
+
+//Human定义method
+func (h *Human) SayHi() {
+    fmt.Printf("Hi, I am %s you can call me on %s\n", h.name, h.phone)
+}
+
+//Employee的method重写Human的method
+func (e *Employee) SayHi() {
+    fmt.Printf("Hi, I am %s, I work at %s. Call me on %s\n", e.name,
+        e.company, e.phone) //Yes you can split into 2 lines here.
+}
+
+func main() {
+    mark := Student{Human{"Mark", 25, "222-222-YYYY"}, "MIT"}
+    sam := Employee{Human{"Sam", 45, "111-888-XXXX"}, "Golang Inc"}
+
+    mark.SayHi()
+    sam.SayHi()
+}
+```
 
 
 
@@ -1709,7 +2015,7 @@ func (this *user) sum() int{
 
 **注意：** 示例代码的 22 行存在一个错误。 由于 `Abs` 方法只为 `*Vertex` （指针类型）定义， 因此 `Vertex` （值类型）并未实现 `Abser` 。
 
-```
+```go
 package main
 
 import (
@@ -1719,6 +2025,22 @@ import (
 
 type Abser interface {
 	Abs() float64
+}
+type MyFloat float64
+
+func (f MyFloat) Abs() float64 {
+	if f < 0 {
+		return float64(-f)
+	}
+	return float64(f)
+}
+
+type Vertex struct {
+	X, Y float64
+}
+
+func (v *Vertex) Abs() float64 {
+	return math.Sqrt(v.X*v.X + v.Y*v.Y)
 }
 
 func main() {
@@ -1741,22 +2063,7 @@ func main() {
 	fmt.Println(a.Abs())
 }
 
-type MyFloat float64
 
-func (f MyFloat) Abs() float64 {
-	if f < 0 {
-		return float64(-f)
-	}
-	return float64(f)
-}
-
-type Vertex struct {
-	X, Y float64
-}
-
-func (v *Vertex) Abs() float64 {
-	return math.Sqrt(v.X*v.X + v.Y*v.Y)
-}
 ```
 
 ## 接口与隐式实现
@@ -2727,6 +3034,10 @@ var fetcher = &fakeFetcher{
 	},
 }
 ```
+
+### 连接数据库
+
+
 
 ## 接下来去哪？
 
