@@ -2,6 +2,8 @@
 
 # Gin框架中文文档
 
+Gin 是一个用 Go 语言编写的 WEB 框架。
+
 ### 安装
 
 要安装 Gin 包，你需要已经安装 Go 并且设置好了你的 Go 的工作空间。
@@ -43,6 +45,47 @@ func main() {
     r.Run() // 在 0.0.0.0:8080 上监听并服务
 }
 ```
+
+除了默认服务器中 `router.Run()` 的方式外，还可以用 `http.ListenAndServe()`
+
+```go
+func main() {
+	router := gin.Default()
+	http.ListenAndServe(":8080", router)
+}
+```
+
+或者自定义 HTTP 服务器的配置
+
+```go
+func main() {
+	router := gin.Default()
+
+	s := &http.Server{
+		Addr:           ":8080",
+		Handler:        router,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+	s.ListenAndServe()
+}
+```
+
+无缝重启
+
+可以使用 [fvbock/endless](https://github.com/fvbock/endless) 来替换默认的 `ListenAndServe`。
+
+```go
+router := gin.Default()
+router.GET("/", handler)
+// [...]
+endless.ListenAndServe(":4242", router)
+```
+
+除了 endless 还可以用[manners](https://github.com/braintree/manners) 
+
+
 
 ### 路由
 

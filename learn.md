@@ -448,6 +448,10 @@ func test() {
 
 整数类型有无符号和带符号两种。Go同时支持`int`和`uint`，这两种类型的长度相同，但具体长度取决于不同编译器的实现。Go里面也有直接定义好位数的类型：`rune`, `int8`, `int16`, `int32`, `int64`和`byte`, `uint8`, `uint16`, `uint32`, `uint64`。其中`rune`是`int32`的别称，`byte`是`uint8`的别称。
 
+
+byte`用来强调数据是`raw data`，而不是数字；而`rune`用来表示`Unicode`的`code point
+
+
 这些类型的变量之间不允许互相赋值或操作，不然会在编译时引起编译器报错
 
 ```go
@@ -514,7 +518,15 @@ hello
 
 #### 错误类型
 
-Go内置有一个`error`类型，专门用来处理错误信息，Go的`package`里面还专门有一个包`errors`来处理错误：
+Go内置有一个`error`类型接口，专门用来处理错误信息。
+
+```go
+type error interface {
+        Error() string
+}
+```
+
+Go的`package`里面还专门有一个包`errors`来处理错误：
 
 ```Go
 err := errors.New("emit macho dwarf: elf header corrupted")
@@ -1962,7 +1974,7 @@ func (this *user) sum() int{
 }
 
 ```
-#### method重写
+### method方法重写
 
 ```
 package main
@@ -3110,9 +3122,112 @@ replace (
 ​    mytest v0.0.0 => ../mytest
 )
 
-### Go模块参考资料
+#### Go模块参考资料
 
 - 语义化版本(中文) <https://semver.org/lang/zh-CN/>
 - Go模块官方文档(英文) [https://github.com/golang/go/...](https://github.com/golang/go/wiki/Modules)
 - Go模块命令说明(英文) [https://golang.google.cn/cmd/...](https://golang.google.cn/cmd/go/#hdr-Module_maintenance)
+
+### GoDoc的使用
+
+#### 一. 约定
+
+1. 注释符`//`后面要加空格, 例如: `// xxx`
+
+2. 在`package, const, type, func`等`关键字`上面并且紧邻关键字的注释才会被展示
+
+   ```go
+   // 此行注释被省略
+   
+   // 此行注释被展示 
+   // 
+   // 此行注释被展示2 
+   package banana
+   ```
+
+3. `type, const, func`以**名称**为注释的开头, `package`以`Package name`为注释的开头
+
+   ```go
+   // Package banana ...
+   package banana
+   
+   // Xyz ...
+   const Xyz = 1
+   
+   // Abc ...
+   type Abc struct {}
+   
+   // Bcd ...
+   func Bcd() {}
+   ```
+
+4. 有效的关键字注释不应该超过`3`行
+
+   ```
+   // Package banana ...
+   // ...
+   // ...
+   // 最好不要超过三行
+   package banana
+   ```
+
+5. `Package`的注释如果超过`3`行, 应该放在当前包目录下一个单独的文件中, 如:doc.go
+
+6. **如果当前包目录下包含多个Package注释的go文件(包括doc.go), 那么按照文件名的字母数序优先显示**
+
+   ```
+   //----- doc.go -----
+   
+   // Package banana ...第一个显示
+   package banana
+   ```
+
+   ```
+   //----- e.go -----
+   
+   // Package banana ...第二个显示
+   package banana
+   ```
+
+   ```
+   //----- f.go -----
+   
+   // Package banana ...第三个显示
+   package banana
+   ```
+
+7. `Package`的注释会出现在godoc的[包列表](https://golang.org/pkg/)中, 但只能展示大约523字节的长度
+
+8. 在无效注释中以`BUG(xxx)`开头的注释, 将被识别为已知bug, 显示在`bugs`区域, [示例](http://golang.org/pkg/bytes/#bugs)
+
+   ```
+   // BUG(who): 我是bug说明
+   
+   // Package banana ...
+   package banana
+   ```
+
+9. 如果`bug注释`和`关键字注释`中间无换行, 那么`混合的注释`将被显示在`bugs`和`godoc列表`两个区域内
+
+   ```
+   // BUG(xxx): 我是bug注释
+   // Package banana ...也是pkg注释
+   package banana
+   ```
+
+10. URL将被转化为HTML链接
+
+#### 二. Example
+
+文件必须放在当前包下
+
+文件名以`example`开头, `_`连接, `test`结尾, 如:`example_xxx_test.go` 
+
+包名是`当前包名` + `_test`, 如: `strings_test` 
+
+函数名称的格式`func Example[FuncName][_tag]()` 
+
+函数注释会展示在页面上
+
+函数结尾加上`// Output:`注释, 说明函数返回的值
 
