@@ -64,6 +64,57 @@ go build -o fn -v main.go
 - 反射
 - 语言交互性
 
+## 语言的描述——BNF范式
+
+乔姆斯基(Chomsky)于1956年建立形式语言的描述以来，形式语言的理论发展很快。他将[文法分成四种类型](http://baike.baidu.com/link?url=azwDk7HZGexx5dH2iagrxMyA3pXIyqyc5nY50DvVlze13rzGAQ8hoXnwE8tmUbwmwy-CJPkyDv94uTKyRB0uj_)，即0型、1型、2型和3型，0型即自然语言文法，1型称为上下文相关文法，2型称为上下文无关文法，3型称为正则文法。
+
+BNF范式是一种用于表示[上下文无关文法](https://zh.wikipedia.org/wiki/%E4%B8%8A%E4%B8%8B%E6%96%87%E6%97%A0%E5%85%B3%E6%96%87%E6%B3%95)的语言
+
+**巴克斯范式的内容：**
+
+  尖括号( < > )内包含的为必选项。
+
+  : : = 是 “被定义为”的意思。
+
+  方括号( [ ] )内包含的为可选项。
+
+  大括号( { } )内包含的为可重复0至无数次的项。
+
+ 竖线( | )表示在其左右两边任选一项，相当于"OR"的意思。
+
+省略号(...)表示该元素可以重复任意多次。如果省略号后面出现分组元素，重复括号里面指定的分组元素。如果省略后出现一个单元素的元素，只是重复单元素。
+
+
+
+有了BNF范式定义我们的文法规则，那么我们在识别一个文法的时候，就能对其构建一棵**抽象语法树（AST）**，这个语法树就是帮助我们进行代码编译工作的核心数据结构。
+
+Go语言规范 [The Go Programming Language Specification](https://golang.org/ref/spec#defer_statements)
+
+The syntax is specified using Extended Backus-Naur Form (EBNF):
+
+```
+Production  = production_name "=" [ Expression ] "." .
+Expression  = Alternative { "|" Alternative } .
+Alternative = Term { Term } .
+Term        = production_name | token [ "…" token ] | Group | Option | Repetition .
+Group       = "(" Expression ")" .
+Option      = "[" Expression "]" .
+Repetition  = "{" Expression "}" .
+```
+
+Productions are expressions constructed from terms and the following operators, in increasing precedence:
+
+```
+|   alternation
+()  grouping
+[]  option (0 or 1 times)
+{}  repetition (0 to n times)
+```
+
+Lower-case production names are used to identify lexical tokens. Non-terminals are in CamelCase. Lexical tokens are enclosed in double quotes `""` or back quotes ````.
+
+The form `a … b` represents the set of characters from `a` through `b` as alternatives. The horizontal ellipsis `…` is also used elsewhere in the spec to informally denote various enumerations or code snippets that are not further specified. The character `…` (as opposed to the three characters `...`) is not a token of the Go language.
+
 ## GO 语法基础
 
 Go 语言的基础组成有以下几个部分：
@@ -127,12 +178,12 @@ myname50   _temp   j   a23b9   retVal
 
 Go 语言按类别有以下几种数据类型：
 
-| 序号   | 类型和描述                                    |
-| ---- | ---------------------------------------- |
-| 1    | **布尔型**布尔型的值只可以是常量 true 或者 false。一个简单的例子：var b bool = true。 |
-| 2    | **数字类型**整型 int 和浮点型 float，Go 语言支持整型和浮点型数字，并且原生支持复数，其中位的运算采用补码。 |
-| 3    | **字符串类型:**字符串就是一串固定长度的字符连接起来的字符序列。Go的字符串是由单个字节连接起来的。Go语言的字符串的字节使用UTF-8编码标识Unicode文本。 |
-| 4    | **派生类型:**包括：(a) 指针类型（Pointer）(b) 数组类型(c) 结构化类型(struct)(d) Channel 类型(e) 函数类型(f) 切片类型(g) 接口类型（interface）(h) Map 类型 |
+| 序号 | 类型和描述                                                   |
+| ---- | ------------------------------------------------------------ |
+| 1    | **布尔型** 布尔型的值只可以是常量 true 或者 false。一个简单的例子：var b bool = true。 |
+| 2    | **数字类型** 整型 int 和浮点型 float32、float64，Go 语言支持整型和浮点型数字，并且原生支持复数，其中位的运算采用补码。 |
+| 3    | **字符串类型:** 字符串就是一串固定长度的字符连接起来的字符序列。Go的字符串是由单个字节连接起来的。Go语言的字符串的字节使用UTF-8编码标识Unicode文本。 |
+| 4    | **派生类型:** 包括：(a) 指针类型（Pointer）(b) 数组类型(c) 结构化类型(struct)(d) Channel 类型(e) 函数类型(f) 切片类型(g) 接口类型（interface）(h) Map 类型 |
 
 ### 数字类型
 
@@ -311,6 +362,22 @@ func main() {
 	fmt.Println(math.Pi)
 }
 ```
+
+### 内置函数
+
+Go 语言拥有一些不需要进行导入操作就可以使用的内置函数。它们有时可以针对不同的类型进行操作，例如：len、cap 和 append，或必须用于系统级的操作，例如：panic。因此，它们需要直接获得编译器的支持。
+
+以下是一个简单的列表，我们会在后面的章节中对它们进行逐个深入的讲解。
+
+| 名称               | 说明                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| close              | 用于管道通信                                                 |
+| len、cap           | len 用于返回某个类型的长度或数量（字符串、数组、切片、map 和管道）；cap 是容量的意思，用于返回某个类型的最大容量（只能用于切片和 map） |
+| new、make          | new 和 make 均是用于分配内存：new 用于值类型和用户定义的类型，如自定义结构，make 用于内置引用类型（切片、map 和管道）。它们的用法就像是函数，但是将类型作为参数：new(type)、make(type)。new(T) 分配类型 T 的零值并返回其地址，也就是指向类型 T 的指针（详见第 10.1 节）。它也可以被用于基本类型：`v := new(int)`。make(T) 返回类型 T 的初始化之后的值，因此它比 new 进行更多的工作。**new() 是一个函数，不要忘记它的括号** |
+| copy、append       | 用于复制和连接切片                                           |
+| panic、recover     | 两者均用于错误处理机制                                       |
+| print、println     | 底层打印函数，在部署环境中建议使用 fmt 包                    |
+| complex、real imag | 用于创建和操作复数                                           |
 
 ### 函数
 
@@ -1668,7 +1735,7 @@ func main() {
 
 ## 方法
 
-Go 没有类。不过你可以为结构体类型定义方法。
+Go 没有类。不过你可以为结构体类型定义方法，也可以为非结构体类型声明方法
 
 ```go
 func (r ReceiverType) funcName(parameters) (results)
