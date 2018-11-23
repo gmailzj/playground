@@ -3356,3 +3356,71 @@ replace (
 
 函数结尾加上`// Output:`注释, 说明函数返回的值
 
+### Go make 和 new 的区别
+
+#### new(T) 返回的是 T 的指针
+
+new(T) 为一个 T 类型新值分配空间并将此空间初始化为 T 的零值，返回的是新值的地址，也就是 T 类型的指针 *T，该指针指向 T 的新分配的零值。
+
+```go
+p1 := new(int)
+fmt.Printf("p1 --> %#v \n ", p1) //(*int)(0xc42000e250) 
+fmt.Printf("p1 point to --> %#v \n ", *p1) //0
+var p2 *int
+i := 0
+p2 = &i
+fmt.Printf("p2 --> %#v \n ", p2) //(*int)(0xc42000e278) 
+fmt.Printf("p2 point to --> %#v \n ", *p2) //0
+```
+
+上面的代码是等价的，new(int) 将分配的空间初始化为 int 的零值，也就是 0，并返回 int 的指针，这和直接声明指针并初始化的效果是相同的。
+
+#### make 只能用于 slice,map,channel
+
+make 只能用于 slice，map，channel 三种类型，make(T, args) 返回的是初始化之后的 T 类型的值，这个新值并不是 T 类型的零值，也不是指针 *T，是经过初始化之后的 T 的引用。
+
+```go
+var s1 []int
+if s1 == nil {
+    fmt.Printf("s1 is nil --> %#v \n ", s1) // []int(nil)
+}
+s2 := make([]int, 3)
+if s2 == nil {
+    fmt.Printf("s2 is nil --> %#v \n ", s2)
+} else {
+    fmt.Printf("s2 is not nill --> %#v \n ", s2)// []int{0, 0, 0}
+}
+```
+
+slice 的零值是 nil，使用 make 之后 slice 是一个初始化的 slice，即 slice 的长度、容量、底层指向的 array 都被 make 完成初始化，此时 slice 内容被类型 int 的零值填充，形式是 [0 0 0]，map 和 channel 也是类似的。
+
+```go
+var m1 map[int]string
+if m1 == nil {
+    fmt.Printf("m1 is nil --> %#v \n ", m1) //map[int]string(nil)
+}
+
+m2 := make(map[int]string)
+if m2 == nil {
+    fmt.Printf("m2 is nil --> %#v \n ", m2)
+} else {
+    fmt.Printf("m2 is not nill --> %#v \n ", m2) map[int]string{} 
+}
+
+
+var c1 chan string
+if c1 == nil {
+    fmt.Printf("c1 is nil --> %#v \n ", c1) //(chan string)(nil)
+}
+
+c2 := make(chan string)
+if c2 == nil {
+    fmt.Printf("c2 is nil --> %#v \n ", c2)
+} else {
+    fmt.Printf("c2 is not nill --> %#v \n ", c2)//(chan string)(0xc420016120)
+}
+```
+
+#### make(T, args) 返回的是 T 的 引用
+
+如果不特殊声明，go 的函数默认都是按值穿参，即通过函数传递的参数是值的副本，在函数内部对值修改不影响值的本身，但是 make(T, args) 返回的值通过函数传递参数之后可以直接修改，即 map，slice，channel 通过函数穿参之后在函数内部修改将影响函数外部的值。
