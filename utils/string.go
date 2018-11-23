@@ -4,6 +4,7 @@ import "fmt"
 import (
     "strconv"
     "strings"
+    "unicode/utf8"
 )
 
 type IPAddr [4]byte
@@ -40,4 +41,8 @@ func main() {
 	for name, ip := range hosts {
 		fmt.Printf("%v: %v\n", name, ip)
 	}
+	
+	str := "hello中"
+	// RuneCountInString more efficient
+	fmt.Println(len(str), len([]rune(str)), utf8.RuneCountInString(str))
 }
