@@ -432,3 +432,4 @@ router.GET("/benchmark", MyMiddelware(), benchEndpoint)
 | StaticFile(string, string) IRoutes           | 静态`文件`路由 `router.StaticFile("favicon.ico", "./resources/favicon.ico")` |
 | Static(string, string) IRoutes               | 静态`文件夹`路由 `router.Static("/路由","./文件夹目录")`     |
 | StaticFS(string, http.FileSystem) IRoutes    | 静态`文件`路由 `router.Static("/路由",gin.Dir("FileSystem"))` |
+
