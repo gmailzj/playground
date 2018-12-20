@@ -8,14 +8,15 @@ import "strconv"
 type User struct {
     // Golang中，如果指定一个field序列化成JSON的变量名字为-，
     // 则序列化的时候自动忽略这个field
-    Email    string `json:"-"`
+    // Email    string `json:"-"`
+    Email    string `json:"email"`
     Password string `json:"password"`
     // many more fields…
 }
 
 type User2 struct {
-    *User
-    Password string `json:"password,omitempty"`
+    User
+    Password omit `json:"password,omitempty"`
     // Token    string `json:"token"`
 }
 
@@ -33,18 +34,22 @@ type CacheItem struct {
     MaxAge int    `json:"cacheAge"`
     Value  string  `json:"cacheValue"`
 }
+// 因为 bool 默认 为false 
 type omit bool
 
 func main() {
     
     
-    // 临时忽略struct空字段
+    // 临时忽略struct字段
     user := User{ Email: "gmail@qq.com", Password:"hh"}
-	result, err :=  json.Marshal(User2{
-        User: &user,
+    
+    user2 := User2{
+        User: user,
         // Token: "0xabcdef",
-    })
-    fmt.Println(err, string(result), user)
+    }
+	result, err :=  json.Marshal(user2)
+    fmt.Println(err, string(result), user2.Password)
+    fmt.Printf("%+v %+v", user, user2)
     
     
     
