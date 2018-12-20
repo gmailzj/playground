@@ -288,7 +288,7 @@ Slice && Point:
 %p
 ```
 
-## type alias vs defintion
+## Type alias vs defintion
 
 我们基于一个类型创建一个新类型，称之为defintion；基于一个类型创建一个别名，称之为alias，这就是他们最大的区别。
 
@@ -1063,6 +1063,14 @@ if err != nil {
 }
 ```
 
+#### Type
+
+```go
+type test_int func(int) bool //申明了一个函数类型
+```
+
+
+
 ### 基础流程语法
 
 #### 分组声明
@@ -1433,6 +1441,7 @@ func main() {
     jane.int = 15
     fmt.Println(jane)
 }
+// {{Jane 35 100} 15 Biology 0}
 ```
 
 
@@ -2385,7 +2394,7 @@ func (this *user) sum() int{
 ```
 ### method方法重写
 
-```
+```go
 package main
 
 import "fmt"
@@ -2507,7 +2516,7 @@ func main() {
 
 接口值调用方法时会执行其底层类型的同名方法。
 
-```
+```go
 package main
 
 import (
@@ -2696,7 +2705,7 @@ func main() {
 
 类型选择与一般的 switch 语句相似，不过类型选择中的 case 为类型（而非值）， 它们针对给定接口值所存储的值的类型进行比较。
 
-```
+```go
 switch v := i.(type) {
 case T:
     // v 的类型为 T
@@ -2985,7 +2994,7 @@ channel的作用就是在多线程之间传递数据
 
 信道是带有类型的管道，你可以通过它用信道操作符 `<-` 来发送或者接收值。
 
-```
+```go
 ch <- v    // 将 v 发送至信道 ch。
 v := <-ch  // 从 ch 接收值并赋予 v。
 v,ok := <-ch // 如果要知道是否closed得加ok
@@ -2995,7 +3004,7 @@ v,ok := <-ch // 如果要知道是否closed得加ok
 
 和映射与切片一样，信道在使用前必须创建：
 
-```
+```go
 ch := make(chan int)
 ```
 
@@ -3035,7 +3044,7 @@ func main() {
 
 信道可以是 *带缓冲的* 。将缓冲长度作为第二个参数提供给 `make` 来初始化一个带缓冲的信道：
 
-```
+```go
 ch := make(chan int, 100)
 ```
 
@@ -3707,4 +3716,4 @@ if c2 == nil {
 
 #### make(T, args) 返回的是 T 的 引用
 
-如果不特殊声明，go 的函数默认都是按值穿参，即通过函数传递的参数是值的副本，在函数内部对值修改不影响值的本身，但是 make(T, args) 返回的值通过函数传递参数之后可以直接修改，即 map，slice，channel 通过函数穿参之后在函数内部修改将影响函数外部的值。
+如果不特殊声明，go 的函数默认都是按值传参，即通过函数传递的参数是值的副本，在函数内部对值修改不影响值的本身，但是 make(T, args) 返回的值通过函数传递参数之后可以直接修改，即 map，slice，channel 通过函数穿参之后在函数内部修改将影响函数外部的值。
