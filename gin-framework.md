@@ -216,7 +216,19 @@ authorized := router.Group("/admin", gin.BasicAuth(gin.Accounts{
 headVersion := context.GetHeader("version")
 ```
 
+获取请求Method
+
+Request 对应的是官方包 "net/http" 中的 *http.Request，有许多属性，比如Method、Host、Header等等
+
+```go
+method := context.Request.Method
+```
+
+
+
 #### 响应
+
+Write 对应的是官方包 "net/http"中的ResponseWriter
 
 ##### 设置响应头
 

@@ -611,6 +611,25 @@ import (
 )
 ```
 
+导入相对路径的package 报错：
+
+```
+go build
+main.go:6:2: local import "./testinit" in non-local package
+```
+
+如果把project移出gopath，这个时候就不会报这个编译错误了。
+**golang只有在gopath中找不到的包路径，才允许用相对路径导入**。
+
+### package 的init 方法
+
+引入一个package的时候，如果有init方法，会自动执行，用作初始化。
+
+1. 在同一个package中，可以多个文件中定义init方法
+2. 在同一个go文件中，可以重复定义init方法
+3. 在同一个package中，不同文件中的init方法的执行按照文件名先后执行各个文件中的init方法
+4. 在同一个文件中的多个init方法，按照在代码中编写的顺序依次执行不同的init方法
+
 ### 导出名
 
 - 大写字母开头的变量是可导出的，也就是其它包可以读取的，是公有变量；小写字母开头的就是不可导出的，是私有变量。
@@ -3490,6 +3509,29 @@ var fetcher = &fakeFetcher{
 开源电子书 [Go Web 编程](https://github.com/astaxie/build-web-application-with-golang) 和 [Go 入门指南](https://github.com/Unknwon/the-way-to-go_ZH_CN) 能够帮助你更加深入的了解和学习 Go 语言。
 
 访问 [go-zh.org](https://go-zh.org/) 了解更多内容。
+
+### Go包依赖管理
+
+Go dependency management summary:
+
+- `vgo` if your go version is: `x >= go 1.11`
+- `dep` or `vendor` if your go version is: `go 1.6 >= x < go 1.11`
+- Manually if your go version is: `x < go 1.6`
+
+------
+
+Go 1.11 has a feature `vgo` which will [replace](https://github.com/golang/go/wiki/vgo#current-state) `dep`.
+
+To use `vgo`, see [Modules](https://github.com/golang/go/wiki/Modules) documentation. TLDR below:
+
+```golang
+export GO111MODULE=on
+go mod init
+go mod vendor # if you have vendor/ folder, will automatically integrate
+go build
+```
+
+This method creates a file called `go.mod` in your projects directory. You can then build your project with `go build`. If `GO111MODULE=auto` is set, then your project cannot be in `$GOPATH`.
 
 ### Go模块的使用
 
