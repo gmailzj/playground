@@ -17,6 +17,7 @@ type User struct {
 type User2 struct {
     User
     Password omit `json:"password,omitempty"`
+    // Email    string `json:"-"`
     // Token    string `json:"token"`
 }
 
@@ -41,20 +42,21 @@ func main() {
     
     
     // 临时忽略struct字段
-    user := User{ Email: "gmail@qq.com", Password:"hh"}
+    user := User{ Email: "gmail@qq.com", Password:"fsafsad"}
     
     user2 := User2{
         User: user,
         // Token: "0xabcdef",
     }
 	result, err :=  json.Marshal(user2)
-    fmt.Println(err, string(result), user2.Password)
-    fmt.Printf("%+v %+v", user, user2)
+    fmt.Println(err, string(result))
+    fmt.Printf("%+v %+v %+v", user, user2, user2.Email)
     
     
     
     // 
     i, err := strconv.ParseInt("123", 10, 64) 
+    fmt.Println()
     fmt.Println(i, err)
     
     
