@@ -185,6 +185,16 @@ Go 语言按类别有以下几种数据类型：
 | 3    | **字符串类型:** 字符串就是一串固定长度的字符连接起来的字符序列。Go的字符串是由单个字节连接起来的。Go语言的字符串的字节使用UTF-8编码标识Unicode文本。 |
 | 4    | **派生类型:** 包括：(a) 指针类型（Pointer）(b) 数组类型(c) 结构化类型(struct)(d) Channel 类型(e) 函数类型(f) 切片类型(g) 接口类型（interface）(h) Map 类型 |
 
+###  默认值
+
+ 整形如int8、byte、int16、uint、uintprt等，默认值为0。
+ 浮点类型如float32、float64，默认值为0。
+ 布尔类型bool的默认值为false。
+ 复数类型如complex64、complex128，默认值为0+0i。
+ 字符串string的默认值为”“。
+ 错误类型error的默认值为nil。
+ 对于一些复合类型，如指针、切片、字典、通道、接口，默认值为nil。而数组的默认值要根据其数据类型来确定。例如：var a [4]int，其默认值为[0 0 0 0]
+
 ### 数字类型
 
 Go 也有基于架构的类型，例如：int、uint 和 uintptr。
@@ -620,6 +630,18 @@ main.go:6:2: local import "./testinit" in non-local package
 
 如果把project移出gopath，这个时候就不会报这个编译错误了。
 **golang只有在gopath中找不到的包路径，才允许用相对路径导入**。
+
+### 特殊用法
+
+```go
+// 对包 lib 的调用直接省略包名
+import . "utils/lib"
+
+// 特殊符号“_” 仅仅会导致 lib 执行初始化工作，如初始化全局变量，调用 init 函数。
+import _ "utils/lib"
+```
+
+
 
 ### package 的init 方法
 
@@ -1373,6 +1395,62 @@ result:
 73
 */
 ```
+
+- 在 `Go` 中 `*` 代表取指针地址中存的值，`&` 代表取一个值的地址
+
+- 对于指针，我们一定要明白指针储存的是一个值的地址，但本身这个指针也需要地址来储存
+
+  ```go
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  	var p *int
+  	p = new(int)
+  	*p = 1
+  	fmt.Println(p, &p, *p)
+  }
+  
+  输出
+  0xc04204a080  0xc042068018  1
+  
+  ```
+
+  - 如上 `p` 是一个指针，他的值为[内存地址](https://www.baidu.com/s?wd=%E5%86%85%E5%AD%98%E5%9C%B0%E5%9D%80&tn=24004469_oem_dg&rsv_dl=gh_pl_sl_csd) `0xc04204a080`
+  - 而 `p` 的内存地址为 `0xc042068018`
+  - 内存地址 `0xc04204a080` 储存的值为 `1`
+
+**错误实例**
+
+在 **golang** 中如果我们定义一个指针并像普通变量那样给他赋值，例如下方的代码
+
+```go
+package main
+
+import "fmt"
+func main() {
+	var i *int
+	*i = 1
+    fmt.Println(i, &i, *i)
+}
+
+```
+
+- 就会报这样的一个错误
+
+  ```go
+  panic: runtime error: invalid memory address or nil pointer dereference
+  [signal 0xc0000005 code=0x1 addr=0x0 pc=0x498025]
+  ```
+
+- 这个错的原因是 `go` 初始化指针的时候会为指针 `i` 的值赋为 `nil` ，但 `i` 的值代表的是 `*i`的地址， `nil` 的话系统还并没有给 `*i` 分配地址，所以这时给 `*i` 赋值肯定会出错
+
+- 解决这个问题非常简单，在给指针赋值前可以先**创建一块内存**分配给赋值对象即可
+
+  `i = new(int)`
+
+
 
 ## 结构体struct
 
@@ -3769,6 +3847,62 @@ if c2 == nil {
 #### make(T, args) 返回的是 T 的 引用
 
 如果不特殊声明，go 的函数默认都是按值传参，即通过函数传递的参数是值的副本，在函数内部对值修改不影响值的本身，但是 make(T, args) 返回的值通过函数传递参数之后可以直接修改，即 map，slice，channel 通过函数穿参之后在函数内部修改将影响函数外部的值。
+
+### struct 和 map
+
+#### query-result-to-map-in-golang
+
+```go
+rows, _ := db.Query("SELECT ...") // Note: Ignoring errors for brevity
+for rows.Next() {
+    m := make(map[string]interface{})
+    
+    // This WON'T WORK
+    if err := rows.Scan(&m); err != nil {
+        // ERROR: sql: expected X destination arguments in Scan, not 1
+    }
+}
+// 上面的出错
+```
+
+Basically the SQL package is thinking that you expect a single column to be returned and for it to be a **map[string]interface{}** compatible type, which isn’t what we we’re trying to do.
+
+```go
+rows, _ := db.Query("SELECT ...") // Note: Ignoring errors for brevity
+cols, _ := rows.Columns()
+
+for rows.Next() {
+    // Create a slice of interface{}'s to represent each column,
+    // and a second slice to contain pointers to each item in the columns slice.
+    columns := make([]interface{}, len(cols))
+    columnPointers := make([]interface{}, len(cols))
+    for i, _ := range columns {
+        columnPointers[i] = &columns[i]
+    }
+    
+    // Scan the result into the column pointers...
+    if err := rows.Scan(columnPointers...); err != nil {
+        return err
+    }
+
+    // Create our map, and retrieve the value for each column from the pointers slice,
+    // storing it in the map with the name of the column as the key.
+    m := make(map[string]interface{})
+    for i, colName := range cols {
+        val := columnPointers[i].(*interface{})
+        m[colName] = *val
+    }
+    
+    // Outputs: map[columnName:value columnName2:value2 columnName3:value3 ...] 
+    fmt.Print(m)
+}
+```
+
+
+
+https://github.com/bobvanluijt/golang-map-vs-struct-benchmark
+
+
 
 #### 教程
 
