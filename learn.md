@@ -232,10 +232,11 @@ fmt.Printf("%格式")
 General:
 
 ```go
+%v	相应值的默认格式。在打印结构体时，“加号”标记（%+v）会添加字段名
 %v	the value in a default format
 	when printing structs, the plus flag (%+v) adds field names
-%#v	a Go-syntax representation of the value
-%T	a Go-syntax representation of the type of the value
+%#v	a Go-syntax representation of the value; 相应值的 Go 语法表示
+%T	a Go-syntax representation of the type of the value; 相应值的类型的 Go 语法表示
 ```
 
 The default format for %v is:
