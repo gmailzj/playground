@@ -26,7 +26,7 @@ go get github.com/smallnest/gen
 $ gen --connstr "root@tcp(127.0.0.1:3306)/employees?&parseTime=True" --database employees --json --gorm --guregu --rest
 ```
 
-gen --connstr "root@tcp(127.0.0.1:3306)/fpmerchant?&parseTime=True" --database fpmerchant --json --gorm --guregu -t m_sell_client_new
+gen --connstr "root@tcp(127.0.0.1:3306)/fpmerchant?&parseTime=True" ~~--database fpmerchant~~ --json --gorm --guregu -t m_sell_client_new
 
 
 

@@ -1,3 +1,37 @@
+一、基本数据类型之间的转换
+
+1、string到int  
+
+int,err:=strconv.Atoi(string)  
+
+2、string到int64  
+
+int64, err := strconv.ParseInt(string, 10, 64)  
+
+3、int到string  
+
+string:=strconv.Itoa(int)  
+
+4、int64到string  
+
+string:=strconv.FormatInt(int64,10)  
+
+5、字符串到float32/float64
+
+float32, err = ParseFloat(string, 32)  
+
+float64,err = ParseFloat(string,64)
+
+6、int64转int
+
+int:=int(int64)  
+
+7、int转int64
+
+int64:=int64(int)
+
+
+
 ### 0 字符串转换为数字
 
 ```
@@ -105,7 +139,7 @@ func LastIndexAny(s, chars string) int
 func LastIndexFunc(s string, f func(rune) bool) int
 ```
 
-8 时间
+### 8 时间
 
 ```go
 //获取当前时间
@@ -135,5 +169,27 @@ func LastIndexFunc(s string, f func(rune) bool) int
    i := t.Minute()               //分钟
    s := t.Second()               //秒
    fmt.Println(y, m, d, h, i, s)
+```
+
+第一个单词首字母变大写：Ucfirst()，第一个单词首字母变小写：Lcfirst()
+
+```go
+import (
+     "unicode"
+)
+ 
+func Ucfirst(str string) string {
+    for i, v := range str {
+        return string(unicode.ToUpper(v)) + str[i+1:]
+    }
+    return ""
+}
+ 
+func Lcfirst(str string) string {
+    for i, v := range str {
+        return string(unicode.ToLower(v)) + str[i+1:]
+    }
+    return ""
+}
 ```
 

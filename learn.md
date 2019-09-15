@@ -52,6 +52,21 @@ go build -o fn -v main.go
 | -work | 打印出编译时生成的临时工作目录的路径，并在编译结束时保留它。在默认情况下，编译结束时会删除该目录。 |
 | -x    | 打印编译期间所用到的其它命令。注意它与`-n`标记的区别。            |
 
+### go install
+
+命令`go install`用于编译并安装指定的代码包及它们的依赖包
+
+`go install`命令只比`go build`命令多做了一件事，即：安装编译后的结果文件到指定目录。
+
+#### go mod
+
+git config --global url."git@gitlab.yewifi.com:".insteadOf "http://gitlab.yewifi.com/" 
+
+export http_proxy=http://127.0.0.1:1087;export https_proxy=http://127.0.0.1:1087;
+
+export GOPROXY="https://athens.azurefd.net"
+export GO111MODULE=on
+
 ## Go 语言最主要的特性：
 
 - 自动垃圾回收
