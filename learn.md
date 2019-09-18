@@ -132,6 +132,10 @@ The form `a … b` represents the set of characters from `a` through `b` as alte
 
 ## GO 语法基础
 
+### 文件名
+
+Go 的源文件以 `.go` 为后缀名存储在计算机中，这些文件名均由小写字母组成，如 `scanner.go` 。如果文件名由多个部分组成，则使用下划线 `_` 对它们进行分隔，如 `scanner_test.go` 。文件名不包含空格或其他特殊字符。
+
 Go 语言的基础组成有以下几个部分：
 
 - 包声明
@@ -147,7 +151,7 @@ Go 程序可以由多个标记组成，可以是关键字，标识符，常量�
 
 程序中可能会使用到这些分隔符：括号 ()，中括号 [] 和大括号 {}。
 
-程序中可能会使用到这些标点符号：.、,、;、: 和 …。
+程序中可能会使用到这些标点符号：.   ,   ;  : 和 …。
 
 ### 标识符
 
@@ -165,6 +169,10 @@ myname50   _temp   j   a23b9   retVal
 - 1ab（以数字开头）
 - case（Go 语言的关键字）
 - a+b（运算符是不允许的）
+
+`_` 本身就是一个特殊的标识符，被称为空白标识符。它可以像其他标识符那样用于变量的声明或赋值（任何类型都可以赋值给它），但任何赋给这个标识符的值都将被抛弃，因此这些值不能在后续的代码中使用，也不可以使用这个这个标识符作为变量对其它变量的进行赋值或运算。
+
+在编码过程中，你可能会遇到没有名称的变量、类型或方法。虽然这不是必须的，但有时候这样做可以极大地增强代码的灵活性，这些变量被统称为匿名变量。
 
 ### 关键字
 
@@ -703,6 +711,8 @@ nil is a predeclared identifier representing the zero value for a pointer, chann
 ```go
  // Type must be a pointer, channel, func, interface, map, or slice type
 ```
+
+在 golang 中，nil 只能赋值给 指针、channel、func、interface、map 或 slice 类型的变量。如果未遵循这个规则，则会引发 panic
 
 ### 内置函数
 
