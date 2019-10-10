@@ -60,9 +60,9 @@ go build -o fn -v main.go
 
 #### go mod
 
-git config --global url."git@gitlab.yewifi.com:".insteadOf "http://gitlab.yewifi.com/" 
+git config --global url."git@gitlab.xxx.com:".insteadOf "http://gitlab.xxx.com/" 
 
-export http_proxy=http://127.0.0.1:1087;export https_proxy=http://127.0.0.1:1087;
+export http_proxy=http://127.0.0.1:1087;   export https_proxy=http://127.0.0.1:1087;
 
 export GOPROXY="https://athens.azurefd.net"
 export GO111MODULE=on
