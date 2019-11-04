@@ -1183,6 +1183,8 @@ Go 只有一种循环结构： `for` 循环。
 - 条件表达式：在每次迭代前求值
 - 后置语句：在每次迭代的结尾执行
 
+这三部分组成的循环的头部，它们之间使用分号 `;` 相隔，但并不需要括号 `()` 将它们括起来
+
 初始化语句通常为一句短变量声明，该变量声明仅在 `for` 语句的作用域中可见。
 
 一旦条件表达式的布尔值为 `false`，循环迭代就会终止。 **注意**：和 C、Java、JavaScript 之类的语言不同，Go 的 for 语句后面没有小括号，大括号 `{ }` 则是必须的。
@@ -1200,6 +1202,35 @@ func main() {
 	fmt.Println(sum)
 }
 ```
+
+左花括号 `{` 必须和 for 语句在同一行，计数器的生命周期在遇到右花括号 `}` 时便终止。一般习惯使用 i、j、z 或 ix 等较短的名称命名计数器。
+
+特别注意，永远不要在循环体内修改计数器，这在任何语言中都是非常差的实践！
+
+
+
+
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    str := "Golang"
+    fmt.Printf("The length of str is: %d\n", len(str))
+    for ix :=0; ix < len(str); ix++ {
+        fmt.Printf("Character on position %d is: %c \n", ix, str[ix])
+    }
+    str2 := "日本語"
+    fmt.Printf("The length of str2 is: %d\n", len(str2))
+    for ix :=0; ix < len(str2); ix++ {
+        fmt.Printf("Character on position %d is: %c \n", ix, str2[ix])
+    }
+}
+```
+
+
 
 #### for 是 Go 中的 “while”
 
@@ -1261,6 +1292,45 @@ func pow(x, n, lim float64) float64 {
 
 你大概已经知道 `switch` 语句的样子了。
 
+```go
+switch var1 {
+    case val1:
+        ...
+    case val2:
+        ...
+    default:
+        ...
+}
+```
+
+变量 var1 可以是任何类型，而 val1 和 val2 则可以是同类型的任意值。类型不被局限于常量或整数，但必须是相同的类型；或者最终结果为相同类型的表达式。前花括号 `{` 必须和 switch 关键字在同一行。
+
+您可以同时测试多个可能符合条件的值，使用逗号分割它们，例如：`case val1, val2, val3`。
+
+每一个 `case` 分支都是唯一的，从上至下逐一测试，直到匹配为止。
+
+一旦成功地匹配到每个分支，在执行完相应代码后就会退出整个 switch 代码块，也就是说您不需要特别使用 `break` 语句来表示结束。
+
+因此，程序也不会自动地去执行下一个分支的代码。如果在执行完每个分支的代码后，还希望继续执行后续分支的代码，可以使用 `fallthrough` 关键字来达到目的。
+
+因此：
+
+```go
+switch i {
+    case 0: // 空分支，只有当 i == 0 时才会进入分支
+    case 1:
+        f() // 当 i == 0 时函数不会被调用
+}
+```
+
+```go
+switch i {
+    case 0: fallthrough
+    case 1:
+        f() // 当 i == 0 时函数也会被调用
+}
+```
+
 除非以 `fallthrough` 语句结束，否则分支会自动终止。
 
 ```go
@@ -1283,16 +1353,7 @@ func main() {
 
 switch 的 case 语句从上到下顺次执行，直到匹配成功时停止。
 
-（例如，
 
-```go
-switch i {
-case 0:
-case f():
-}
-```
-
-在 `i==0` 时 `f` 不会被调用。）
 
 #### 没有条件的 switch
 
@@ -1313,6 +1374,27 @@ func main() {
 	}
 }
 ```
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    var num1 int = 7
+
+    switch {
+        case num1 < 0:
+            fmt.Println("Number is negative")
+        case num1 > 0 && num1 < 10:
+            fmt.Println("Number is between 0 and 10")
+        default:
+            fmt.Println("Number is 10 or greater")
+    }
+}
+```
+
+
 
 #### defer
 
