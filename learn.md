@@ -1247,6 +1247,39 @@ func main() {
 
 ```
 
+#### for-range 结构
+
+这是 Go 特有的一种的迭代结构，您会发现它在许多情况下都非常有用。它可以迭代任何一个集合（包括数组和 map，详见第 7 和 8 章）。语法上很类似其它语言中 foreach 语句，但您依旧可以获得每次迭代所对应的索引。一般形式为：`for ix, val := range coll { }`。
+
+要注意的是，`val` 始终为集合中对应索引的值拷贝，因此它一般只具有只读性质，对它所做的任何修改都不会影响到集合中原有的值（**译者注：如果 val 为指针，则会产生指针的拷贝，依旧可以修改集合中的原值**）。一个字符串是 Unicode 编码的字符（或称之为 `rune`）集合，因此您也可以用它迭代字符串：
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    str := "Golang!"
+    fmt.Printf("The length of str is: %d\n", len(str))
+    for pos, char := range str {
+        fmt.Printf("Character on position %d is: %c \n", pos, char)
+    }
+    fmt.Println()
+    str2 := "Chinese: 日本語"
+    fmt.Printf("The length of str2 is: %d\n", len(str2))
+    for pos, char := range str2 {
+        fmt.Printf("character %c starts at byte position %d\n", char, pos)
+    }
+    fmt.Println()
+    fmt.Println("index int(rune) rune    char bytes")
+    for index, rune := range str2 {
+        fmt.Printf("%-2d      %d      %U '%c' % X\n", index, rune, rune, rune, []byte(string(rune)))
+    }
+}
+```
+
+每个 rune 字符和索引在 for-range 循环中是一一对应的。它能够自动根据 UTF-8 规则识别 Unicode 编码的字符。
+
 #### if
 
 Go 的 `if` 语句与 `for` 循环类似，表达式外无需小括号 `( )` ，而大括号 `{ }` 则是必须的。
