@@ -32,6 +32,105 @@ int64:=int64(int)
 
 
 
+二 interface转换
+
+1、interface{}类型转换成具体类型
+
+原理：断言实现。如：
+
+断言成功返回true,失败返回false
+
+var a interface{} = "a
+
+value, ok := a.(string)
+if !ok {
+    fmt.Println("It's not ok for type string")
+    return
+}
+fmt.Println("The value is ", value)
+
+在Go里面分为命名类型(named，所有使用type定义的类型都是命名类型，如int int64 string bool)和非命名类型(unamed map slice array)，一个非命名类型可以赋值给一个命名类型，只要他们的结构相同
+
+
+
+普通变量类型**int,float,string** 都可以使用 `type (a)`这种形式来进行强制类型转换,比如
+
+```
+var a int32  = 10
+var b int64 = int64(a)
+var c float32 = 12.3
+var d float64 =float64(c)
+```
+
+golang中 指针也是有类型的,
+
+```
+package main
+
+func main() {
+    var a int = 10
+    var p *int =&a
+    var c *int64 
+    c= (*int64)(p)
+}
+这样的代码是错误的,编译器会提示cannot convert p (type *int) to type *int64
+指针的强制类型转换需要用到unsafe包中的函数实现
+
+```
+
+```
+package main
+
+import "unsafe"
+import "fmt"
+
+func main() {
+    var a int =10
+    var b *int =&a
+    var c *int64 = (*int64)(unsafe.Pointer(b))
+    fmt.Println(*c)
+}
+```
+
+golang中还有一中类型判断,类型断言
+
+```
+package main
+
+import "fmt"
+
+func main() {
+    var a interface{} =10
+    switch a.(type){
+    case int:
+            fmt.Println("int")
+    case float32:
+            fmt.Println("string")
+    }
+}
+```
+
+```
+package main
+
+import "fmt"
+
+var b interface{} = "a"
+
+func main() {
+	fmt.Println("Hello, 世界")
+ 
+	value, ok := b.(string)
+if !ok {
+    fmt.Println("It's not ok for type string")
+    return
+}
+fmt.Println("The value is ", value)
+}
+```
+
+
+
 ### 0 字符串转换为数字
 
 ```

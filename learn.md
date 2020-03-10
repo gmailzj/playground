@@ -657,9 +657,18 @@ main.go:6:2: local import "./testinit" in non-local package
 
 ### 特殊用法
 
+1 使用点操作引入包时，可以省略包前缀：
+
+2 别名 import f "fmt"
+
+3 _操作
+
 ```go
 // 对包 lib 的调用直接省略包名
 import . "utils/lib"
+
+//  别名
+import f "fmt"
 
 // 特殊符号“_” 仅仅会导致 lib 执行初始化工作，如初始化全局变量，调用 init 函数。
 import _ "utils/lib"
