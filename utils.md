@@ -270,6 +270,8 @@ func LastIndexFunc(s string, f func(rune) bool) int
    fmt.Println(y, m, d, h, i, s)
 ```
 
+### 9 单词首字母
+
 第一个单词首字母变大写：Ucfirst()，第一个单词首字母变小写：Lcfirst()
 
 ```go
@@ -289,6 +291,101 @@ func Lcfirst(str string) string {
         return string(unicode.ToLower(v)) + str[i+1:]
     }
     return ""
+}
+```
+
+### 10 浮点数最大最小值
+
+Golang为什么没有整型的max/min方法
+
+作为有一些经验的Golang开发者，你可能意识到了Golang并没有max/min方法来返回给定的两个或多个整型数值中的最大值或最小值。其他语言通常会在核心库中提供这类方法。 你有没有想过为什么Golang没有这么做？
+Golang确实在`math`包中提供了max/min方法，但是仅用于对比float64类型。方法的签名如下：
+
+
+
+```go
+math.Min(float64, float64) float64
+math.Max(float64, float64) float64
+```
+
+Golang为float64提供max/min方法是浮点类型的比较对于大部分开发者来说比较困难。由于涉及精度问题，浮点数的对比往往没有那么直接。所以Golang在`math`包中提供了用于浮点数对比的内建方法。
+对于int/int64数据类型来说，max/min方法的实现就相当简单了，任何有基础编程经验的开发者都可以轻松的实现这两个方法：
+
+
+
+```go
+func Min(x, y int64) int64 {
+ if x < y {
+   return x
+ }
+ return y
+}
+
+func Max(x, y int64) int64 {
+ if x > y {
+   return x
+ }
+ return y
+}
+```
+
+另外，为了尽可能保持Golang简洁干净，Golang并不支持泛型。所以既然已经有了对比float64数据类型的max/min方法，在同一个`math`包中就无法支持同名的但是参数类型不同的方法。也就是说下面的方法无法存在同一个包中。
+
+### 11 高阶函数
+
+```go
+package main
+ 
+import (
+  "fmt"
+  "reflect"
+  "runtime"
+  "time"
+)
+ 
+type SumFunc func(int64, int64) int64
+ 
+func getFunctionName(i interface{}) string {
+  return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+ 
+func timedSumFunc(f SumFunc) SumFunc {
+  return func(start, end int64) int64 {
+ 
+    defer func(t time.Time) {
+      fmt.Printf("--- Time Elapsed (%s): %v ---\n", 
+          getFunctionName(f), time.Since(t))
+    }(time.Now())
+ 
+    return f(start, end)
+  }
+}
+ 
+func Sum1(start, end int64) int64 {
+  var sum int64
+  sum = 0
+  if start > end {
+    start, end = end, start
+  }
+  for i := start; i <= end; i++ {
+    sum += i
+  }
+  return sum
+}
+ 
+func Sum2(start, end int64) int64 {
+  if start > end {
+    start, end = end, start
+  }
+  return (end - start + 1) * (end + start) / 2
+}
+ 
+func main() {
+ 
+  sum1 := timedSumFunc(Sum1)
+  sum2 := timedSumFunc(Sum2)
+ 
+  fmt.Printf("%d, %d\n", sum1(-10000, 10000000), sum2(-10000, 10000000))
 }
 ```
 
