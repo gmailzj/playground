@@ -32,6 +32,105 @@ int64:=int64(int)
 
 
 
+二 interface转换
+
+1、interface{}类型转换成具体类型
+
+原理：断言实现。如：
+
+断言成功返回true,失败返回false
+
+var a interface{} = "a
+
+value, ok := a.(string)
+if !ok {
+    fmt.Println("It's not ok for type string")
+    return
+}
+fmt.Println("The value is ", value)
+
+在Go里面分为命名类型(named，所有使用type定义的类型都是命名类型，如int int64 string bool)和非命名类型(unamed map slice array)，一个非命名类型可以赋值给一个命名类型，只要他们的结构相同
+
+
+
+普通变量类型**int,float,string** 都可以使用 `type (a)`这种形式来进行强制类型转换,比如
+
+```
+var a int32  = 10
+var b int64 = int64(a)
+var c float32 = 12.3
+var d float64 =float64(c)
+```
+
+golang中 指针也是有类型的,
+
+```
+package main
+
+func main() {
+    var a int = 10
+    var p *int =&a
+    var c *int64 
+    c= (*int64)(p)
+}
+这样的代码是错误的,编译器会提示cannot convert p (type *int) to type *int64
+指针的强制类型转换需要用到unsafe包中的函数实现
+
+```
+
+```
+package main
+
+import "unsafe"
+import "fmt"
+
+func main() {
+    var a int =10
+    var b *int =&a
+    var c *int64 = (*int64)(unsafe.Pointer(b))
+    fmt.Println(*c)
+}
+```
+
+golang中还有一中类型判断,类型断言
+
+```
+package main
+
+import "fmt"
+
+func main() {
+    var a interface{} =10
+    switch a.(type){
+    case int:
+            fmt.Println("int")
+    case float32:
+            fmt.Println("string")
+    }
+}
+```
+
+```
+package main
+
+import "fmt"
+
+var b interface{} = "a"
+
+func main() {
+	fmt.Println("Hello, 世界")
+ 
+	value, ok := b.(string)
+if !ok {
+    fmt.Println("It's not ok for type string")
+    return
+}
+fmt.Println("The value is ", value)
+}
+```
+
+
+
 ### 0 字符串转换为数字
 
 ```
@@ -171,6 +270,8 @@ func LastIndexFunc(s string, f func(rune) bool) int
    fmt.Println(y, m, d, h, i, s)
 ```
 
+### 9 单词首字母
+
 第一个单词首字母变大写：Ucfirst()，第一个单词首字母变小写：Lcfirst()
 
 ```go
@@ -190,6 +291,101 @@ func Lcfirst(str string) string {
         return string(unicode.ToLower(v)) + str[i+1:]
     }
     return ""
+}
+```
+
+### 10 浮点数最大最小值
+
+Golang为什么没有整型的max/min方法
+
+作为有一些经验的Golang开发者，你可能意识到了Golang并没有max/min方法来返回给定的两个或多个整型数值中的最大值或最小值。其他语言通常会在核心库中提供这类方法。 你有没有想过为什么Golang没有这么做？
+Golang确实在`math`包中提供了max/min方法，但是仅用于对比float64类型。方法的签名如下：
+
+
+
+```go
+math.Min(float64, float64) float64
+math.Max(float64, float64) float64
+```
+
+Golang为float64提供max/min方法是浮点类型的比较对于大部分开发者来说比较困难。由于涉及精度问题，浮点数的对比往往没有那么直接。所以Golang在`math`包中提供了用于浮点数对比的内建方法。
+对于int/int64数据类型来说，max/min方法的实现就相当简单了，任何有基础编程经验的开发者都可以轻松的实现这两个方法：
+
+
+
+```go
+func Min(x, y int64) int64 {
+ if x < y {
+   return x
+ }
+ return y
+}
+
+func Max(x, y int64) int64 {
+ if x > y {
+   return x
+ }
+ return y
+}
+```
+
+另外，为了尽可能保持Golang简洁干净，Golang并不支持泛型。所以既然已经有了对比float64数据类型的max/min方法，在同一个`math`包中就无法支持同名的但是参数类型不同的方法。也就是说下面的方法无法存在同一个包中。
+
+### 11 高阶函数
+
+```go
+package main
+ 
+import (
+  "fmt"
+  "reflect"
+  "runtime"
+  "time"
+)
+ 
+type SumFunc func(int64, int64) int64
+ 
+func getFunctionName(i interface{}) string {
+  return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+ 
+func timedSumFunc(f SumFunc) SumFunc {
+  return func(start, end int64) int64 {
+ 
+    defer func(t time.Time) {
+      fmt.Printf("--- Time Elapsed (%s): %v ---\n", 
+          getFunctionName(f), time.Since(t))
+    }(time.Now())
+ 
+    return f(start, end)
+  }
+}
+ 
+func Sum1(start, end int64) int64 {
+  var sum int64
+  sum = 0
+  if start > end {
+    start, end = end, start
+  }
+  for i := start; i <= end; i++ {
+    sum += i
+  }
+  return sum
+}
+ 
+func Sum2(start, end int64) int64 {
+  if start > end {
+    start, end = end, start
+  }
+  return (end - start + 1) * (end + start) / 2
+}
+ 
+func main() {
+ 
+  sum1 := timedSumFunc(Sum1)
+  sum2 := timedSumFunc(Sum2)
+ 
+  fmt.Printf("%d, %d\n", sum1(-10000, 10000000), sum2(-10000, 10000000))
 }
 ```
 

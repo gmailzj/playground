@@ -657,9 +657,18 @@ main.go:6:2: local import "./testinit" in non-local package
 
 ### 特殊用法
 
+1 使用点操作引入包时，可以省略包前缀：
+
+2 别名 import f "fmt"
+
+3 _操作
+
 ```go
 // 对包 lib 的调用直接省略包名
 import . "utils/lib"
+
+//  别名
+import f "fmt"
 
 // 特殊符号“_” 仅仅会导致 lib 执行初始化工作，如初始化全局变量，调用 init 函数。
 import _ "utils/lib"
@@ -3817,7 +3826,70 @@ replace (
 - Go模块官方文档(英文) [https://github.com/golang/go/...](https://github.com/golang/go/wiki/Modules)
 - Go模块命令说明(英文) [https://golang.google.cn/cmd/...](https://golang.google.cn/cmd/go/#hdr-Module_maintenance)
 
+### Go Test
+
+#### 运行测试
+
+```
+$ go test .          # Run all tests in the current directory
+$ go test ./...      # Run all tests in the current directory and sub-directories
+$ go test ./foo/bar  # Run all tests in the ./foo/bar directory
+```
+
+#### 分析测试覆盖率
+
+```
+ go test -cover ./...
+```
+
+#### 测试所有依赖
+
+在为发布或者部署可执行文件，或者是公开分发代码之前，你可能会想要运行 `go test all` 命令：
+
+```
+$ go test all
+```
+
+这个命令将会对模块中的所有包和所有依赖项运行测试（包括测试*测试依赖*以及必要的*标准库包*）。并且它能够帮助验证所使用的依赖项的确切版本是否彼此兼容
+
+#### 压力测试
+
+可以使用 `go test -count` 命令来连续多次运行一个测试。这在想要检查偶发或者间歇性失败的时候很有用
+
+```
+$ go test -run=^TestFooBar$ -count=500 .
+```
+
+
+
+### 执行静态分析
+
+`go vet` 工具会对你的代码进行静态分析，然后对_可能_出现（编译器可能无法获取）的代码错误进行示警。像是无法访问的代码、不必要的赋值和错误格式的构建标记等问题。可以像这样使用它：
+
+```
+$ go vet foo.go     # Vet the foo.go file
+$ go vet .          # Vet all files in the current directory
+$ go vet ./...      # Vet all files in the current directory and sub-directories
+$ go vet ./foo/bar  # Vet all files in the ./foo/bar directory
+```
+
+
+
 ### GoDoc的使用
+
+```
+$ go doc strings            # View simplified documentation for the strings package
+$ go doc -all strings       # View full documentation for the strings package
+$ go doc strings.Replace    # View documentation for the strings.Replace function
+$ go doc sql.DB             # View documentation for the database/sql.DB type
+$ go doc sql.DB.Query       # View documentation for the database/sql.DB.Query method
+```
+
+还可以使用 `-src` 标志来展示相关的 Go 源代码。例如：
+
+```
+$ go doc -src strings.Replace   # View the source code for the strings.Replace function
+```
 
 #### 一. 约定
 
