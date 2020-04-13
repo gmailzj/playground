@@ -157,7 +157,7 @@ fmt.Println(str0, str1, str2)
 // A 65 65
 ```
 
-### 2 字符串转换为byte 数组
+### 2 字符串转换为byte 数组 / byte[] 数组转字符串
 
 ```go
 // string to ascii byte array
