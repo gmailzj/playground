@@ -4045,7 +4045,14 @@ https://github.com/bobvanluijt/golang-map-vs-struct-benchmark
 
 
 
-#### 教程
+### 教程
 
 https://www.imooc.com/video/16869
 
+https://book.eddycjy.com/golang/gin/reload-http.html
+
+### 笔记
+
+Go 程序热编译工具，提升开发效率
+
+https://github.com/silenceper/gowatch/blob/master/README_ZH_CN.md
