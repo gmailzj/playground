@@ -30,6 +30,13 @@ int:=int(int64)
 
 int64:=int64(int)
 
+8   interface 转 string
+
+```
+var x interface{} = "abc"
+str := fmt.Sprintf("%v", x)
+```
+
 
 
 二 interface转换
@@ -247,9 +254,11 @@ func LastIndexFunc(s string, f func(rune) bool) int
  
    //获取当前时间戳
    fmt.Println(t.Unix()) //1531293019
+   imeUnix:=time.Now().Unix()            //单位s,打印结果:1491888244
+   timeUnixNano:=time.Now().UnixNano()  //单位纳秒,打印结果：1491888244752784461
  
    //获得当前的时间
-   fmt.Println(t.Uninx().Format("2006-01-02 15:04:05"))  //2018-7-15 15:23:00
+   
  
    //时间 to 时间戳
    loc, _ := time.LoadLocation("Asia/Shanghai")        //设置时区
