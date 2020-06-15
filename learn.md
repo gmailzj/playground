@@ -2182,6 +2182,33 @@ map [KeyType ] ValueType { key1 : value1, key2: value2, ... , keyN : valueN}
 
 映射的零值为 `nil` 。`nil` 映射既没有键，也不能添加键。
 
+```go
+// 这种方式初始化的不能直接用
+var m1 map[string]string
+// panic: assignment to entry in nil map
+m1["key"] = "value"
+
+// 正确用法
+// 先声明map
+var m1 map[string]string
+// 再使用make函数创建一个非nil的map，nil map不能赋值
+m1 = make(map[string]string)
+// 最后给已声明的map赋值
+m1["a"] = "aa"
+
+// 直接创建
+m2 := make(map[string]string)
+// 然后赋值
+m2["a"] = "aa"
+m2["b"] = "bb"
+
+// 初始化 + 赋值一体化
+m3 := map[string]string{
+	"a": "aa",
+	"b": "bb",
+}
+```
+
 `make` 函数会返回给定类型的映射，并将其初始化备用。
 
 `map`的读取和设置也类似`slice`一样，通过`key`来操作，只是`slice`的`index`只能是｀int｀类型，而`map`多了很多类型，可以是`int`，可以是`string`及所有完全定义了`==`与`!=`操作的类型。
