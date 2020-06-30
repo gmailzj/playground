@@ -2166,6 +2166,43 @@ func main() {
 }
 ```
 
+### 通过切片模拟栈和队列
+
+
+
+栈
+
+```
+// 创建栈
+stack:=make([]int,0)
+// push压入
+stack=append(stack,10)
+// pop弹出
+v:=stack[len(stack)-1]
+stack=stack[:len(stack)-1]
+// 检查栈空
+len(stack)==0
+```
+
+队列
+
+```
+// 创建队列
+queue:=make([]int,0)
+// enqueue入队
+queue=append(queue,10)
+// dequeue出队
+v:=queue[0]
+queue=queue[1:]
+// 长度0为空
+len(queue)==0
+```
+
+注意点
+
+- 参数传递，只能修改，不能新增或者删除原始数据
+- 默认 s=s[0:len(s)]，取下限不取上限，数学表示为：[)
+
 ## 映射(Map)
 
 映射的创建的4种方式
