@@ -11,6 +11,10 @@ Go 的并发属于 CSP 并发模型的一种实现，CSP 并发模型的核心�
 
 https://gobyexample.com/regular-expressions
 
+**go中文文档**
+
+https://go-zh.org/pkg/sync/
+
 ## Go 命令基础
 
 ### go env
@@ -900,6 +904,28 @@ func swap(x *int, y *int) {
 
 
 
+### 变量
+
+`var` 语句用于声明一个变量列表，跟函数的参数列表一样，类型在最后。
+
+就像在这个例子中看到的一样，`var` 语句可以出现在包或函数级别。
+
+```go
+package main
+
+import "fmt"
+
+var c, python, java bool
+
+func main() {
+	var i int
+	fmt.Println(i, c, python, java)
+}
+
+```
+
+
+
 ### 变量的初始化
 
 `var` 语句用于声明一个变量列表，跟函数的参数列表一样，类型在最后。
@@ -916,10 +942,11 @@ package main
 import "fmt"
 
 var i, j int = 1, 2
-
+var arr = [2]int{1,2}
 func main() {
 	var c, python, java = true, false, "no!"
 	fmt.Println(i, j, c, python, java)
+  fmt.Println(arr)
 }
 
 ```
@@ -939,7 +966,7 @@ func main() {
 	var i, j int = 1, 2
 	k := 3
 	c, python, java := true, false, "no!"
-	fmt.Println(i, j, k, c, python, java)
+	fmt.Println(i, j, k, c, python, java) 
 }
 ```
 
@@ -1857,11 +1884,15 @@ var a [10]int
 当把一个数组作为参数传入函数的时候，传入的其实是该数组的副本，而不是它的指针。如果要使用指针，那么就需要用到后面介绍的`slice`类型了
 
 ```Go
+var a = [3]int{1, 2, 3} // 声明了一个长度为3的int数组
+
 a := [3]int{1, 2, 3} // 声明了一个长度为3的int数组
 
 b := [10]int{1, 2, 3} // 声明了一个长度为10的int数组，其中前三个元素初始化为1、2、3，其它默认为0
 
 c := [...]int{4, 5, 6} // 可以省略长度而采用`...`的方式，Go会自动根据元素个数来计算长度
+
+d:= [...]int{1:1,0:2}
 ```
 二维数组：
 
@@ -3354,6 +3385,32 @@ func main() {
 }
 ```
 
+## Sync
+
+`WaitGroup` 对象内部有一个计数器，最初从0开始，它有三个方法：`Add(), Done(), Wait()` 用来控制计数器的数量。`Add(n)` 把计数器设置为`n` ，`Done()` 每次把计数器`-1` ，`wait()` 会阻塞代码的运行，直到计数器地值减为`0`。
+
+```go
+func main() {
+    wg := sync.WaitGroup{}
+    wg.Add(100)
+    for i := 0; i < 100; i++ {
+        go func(i int) {
+            fmt.Println(i)
+            wg.Done()
+        }(i)
+    }
+    wg.Wait()
+}
+```
+
+这里首先把`wg` 计数设置为`100`， 每个`for`循环运行完毕都把计数器减一，主函数中使用`Wait()` 一直阻塞，直到`wg`为零——也就是所有的`100`个`for`循环都运行完毕。相对于使用管道来说，`WaitGroup` 轻巧了许多。
+
+### 1. 计数器不能为负值
+
+不能使用`Add()` 给`wg` 设置一个负值
+
+使用`Done()` 也不要把计数器设置成负数了。
+
 ## Goroutines协程
 
 A *goroutine* is a lightweight thread managed by the Go runtime.
@@ -3392,7 +3449,7 @@ v,ok := <-ch // 如果要知道是否closed得加ok
 ch := make(chan int)
 ```
 
-##### 单向chan
+### 单向chan
 
 单向channel变量的声明非常简单，如下：
 
@@ -3432,7 +3489,7 @@ func downloadWorker(jobs <-chan *Jobs, results chan<- *Results) {
 
 
 
-##### chan基础
+### chan基础
 
 默认情况下，发送和接收操作在另一端准备好之前都会阻塞。这使得 Go 程可以在没有显式的锁或竞态变量的情况下进行同步。
 
@@ -3615,6 +3672,153 @@ func main() {
 	}
 }
 ```
+
+## chan实例
+
+### channel状态
+
+channel作为go的一种基本数据类型，它有3种基本状态：nil、open、closed：
+
+```go
+/* nil channel */
+var ch = chan string // A channel is in a nil state when it is declared to its zero value
+ch = nil // A channel can be placed in a nil state
+ 
+/* open channel */
+ch := make(chan string) // A channel is in a open state when it’s made using the built-in function make.
+ 
+/* closed channel */
+close(ch) // A channel is in a closed state when it’s closed using the built-in function close.
+```
+
+处于closed状态的channel，执行send操作（ch <- data）将会触发panic异常，而receive操作（<- ch）则不会，这表明了在channel被close之后，goruntine仍然可以从channel取走数据，**如果channel中没有数据可取时，receive操作会立刻返回零值（nil）**。
+
+range循环可以直接在channel上迭代，当channel被关闭并且没有数据时可以直接跳出循环。
+
+另外，对于nil和closed状态的channel执行close操作也会触发panic异常。
+
+#### unbufferd channel和bufferd channel
+
+虽然channel最常用于goroutine之间的通信，但是channel上的send和receive操作并不一定需要携带数据。根据channel是否需要传递数据，可以区分出一些channel的使用场景
+
+**没有数据的channel的使用场景：**
+
+- goroutine A通过channel告诉goroutine B：”请停止正在做的事情“
+- goroutine A通过channel告诉goroutine B：”我完成了要做的事情，但是没有任何结果需要反馈“
+
+通知的方式一般是close操作，goroutine A对channel执行了close操作，而goruntine B得到channel已经被关闭这个信息后可以执行相应的处理。使用没有数据的channel的好处：一个goroutine可以同时给多个goroutine发送消息，只是这个消息不携带额外的数据，所以常被用于批量goruntine的退出。
+
+对于这种不携带数据，只是作为信号的channel，一般使用如下：
+
+```Go
+ch := make(chan struct{})
+ch <- struct{}{}
+<- ch
+```
+
+**带有数据的channel的使用场景：**
+
+- goroutine A通过channel告诉goroutine B：”请根据我传递给你的数据开始做一件事情“
+- goroutine A通过channel告诉goroutine B：”我完成了要做的事情，请接收我传递的数据（结果）“
+
+通知的方式就是goroutine A执行send发送数据，而goroutine B执行receive接收数据。channel携带的数据只能被一个goruntine得到，一个goruntine取走数据后这份数据在channel里就不复存在了。
+
+对于需要携带数据的channel，一般又可以分成带有buffer的channel（bufferd channel）和不带buffer的channel（unbufferd channel）。
+
+**unbufferd channel**
+
+对于unbufferd channel，不存储任何数据，只负责数据的流通，并且数据的接收一定发生在数据发送完成之前。更详细的解释是，goroutine A在往channel发送数据完成之前，一定有goroutine B在等着从这个channel接收数据，否则发送就会导致发送的goruntine被block住，所以发送和接收的goruntine是耦合的。
+
+#### 示例1
+
+```go
+// 看下面这个例子，往ch发送数据时就使main gouruntine被永久block住，导致程序死锁。
+ 	var ch = make(chan string)
+ 	ch <- "hello" 
+//fatal error: all goroutines are asleep - deadlock! goroutine 1 [chan send]:
+ 	fmt.Println(<-ch)
+```
+
+#### 示例2
+
+​	有人可能会考虑将接收操作放到前面，不幸的是仍然导致了死锁，
+
+```go
+//  因为channel里没有数据，当前goruntine也会被block住，导致程序死锁。
+
+  var ch = make(chan string)
+ 	fmt.Println(<-ch) 
+ 	//fatal error: all goroutines are asleep - deadlock! goroutine 1 [chan receive]:
+ 	ch <- "hello"
+```
+
+#### 示例3
+
+```go
+// 在另一个goruntine中执行receive，程序就可以正常工作了。
+// 因为在main goruntine发送完数据之前，sub goroutine已经在等待接收数据。
+	var ch = make(chan string)
+	go func() {
+	    fmt.Println("Hello, 世界2")
+        fmt.Println(<-ch) //out: hello 
+    }()
+  ch <- "hello" 
+  fmt.Println(time.Millisecond)
+```
+
+#### 示例4
+
+    // 我们期望在sub goruntine中打印10个数，实际上却只有main goruntine打印了hello。
+    // 因为在sub goruntine打印之前，main goruntine就已经执行完成并退出了
+```go
+	go func() {
+        for i := 0; i < 10; i++ { 
+            fmt.Printf("%d ", i)
+        }
+    }()
+    fmt.Println("Hello, 世界3")
+```
+
+#### 示例5
+
+这个时候就可以用一个unbufferd channel来让两个goruntine之间有一些通信，让main goruntine收到sub goruntine通知后再退出。在这种场景中，channel并不携带任何数据，只是起到一个信号的作用。
+
+```go
+func main() {
+	var ch = make(chan string)
+	go func() {
+		for i := 0; i < 10; i++ {
+			fmt.Printf("%d ", i)
+		}
+		ch <- "exit"
+	}()
+	fmt.Println("hello")
+	<-ch
+}
+```
+
+**bufferd channel**
+
+对带有缓冲区的channel执行send和receive操作，其行为和不带缓冲区的channel不太一样。继续讨论最开始的例子，不过这次的channel是一个size=1的bufferd channel，将数据发送给channel后，数据被拷贝到channel的缓冲区，goruntine继续往后执行，所以程序可以正常工作。
+
+```go
+// 这次的channel是一个size=1的bufferd channel，将数据发送给channel后，数据被拷贝到channel的缓冲区，goruntine继续往后执行，所以程序可以正常工作
+ 	var ch = make(chan string, 1)
+ 	ch <- "hello"
+ 	fmt.Println(<-ch) //hello
+	
+// 	当我们调换发送和接收的顺序时，程序又进入了死锁。因为当channel里没有数据时（干涸），执行receive的goroutine也会被block住，最终导致了死锁
+	var ch = make(chan string, 1)
+	fmt.Println(<-ch) //fatal error: all goroutines are asleep - deadlock! goroutine 1 [chan receive]:
+	ch <- "hello"
+	
+// 	对于buffer size=1的channel，第二个数据发送完成之前，之前发送的第一个数据一定被取走了，否则发送也会被block住
+// 对于buffer size>1的channel，发送数据时，之前发送的数据不能保证一定被取走了，并且buffer size越大，数据的交付得到的保证越少
+// 根据发送数据、接收数据、数据处理的速度合理的设计buffer size，甚至可以在不浪费空间的情况下做到没有任何延迟
+// 如果channel buffer已经塞满了数据，继续执行发送会导致当前goruntine被block住（阻塞），直到channel中的数据被取走一部分才可以继续向channel发送数据
+```
+
+
 
 ## 等价二叉树
 
