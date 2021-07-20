@@ -4484,7 +4484,18 @@ for rows.Next() {
 }
 ```
 
-指针易错
+### 指针易错
+
+```go
+// 这种声明方式 p 是一个 nil 值
+var p *Point
+
+// 改为
+var p *Point = new(Point)
+
+// 或者
+var p *Point = &Point{}
+```
 
 ```go
 type Point struct {
@@ -4506,6 +4517,48 @@ func main() {
 https://github.com/bobvanluijt/golang-map-vs-struct-benchmark
 
 
+
+### go build -tags
+
+#### 使用方法
+
+1. 构建约束以一行`+build`开始的注释。在`+build`之后列出了一些条件，在这些条件成立时，该文件应包含在编译的包中；
+2. 约束可以出现在任何源文件中，不限于go文件；
+3. `+build`必须出现在`package`语句之前，`+build`注释之后应要有一个空行。
+
+ 
+
+```go
+// 
+// +build debug
+
+package main
+
+import "fmt"
+
+func main() {
+ fmt.Println("Hello World!")
+}
+```
+
+#### 语法规则
+
+1）只允许是字母数字或_
+
+2）多个条件之间，空格表示OR；逗号表示AND；叹号(!)表示NOT
+
+3）一个文件可以有多个+build，它们之间的关系是AND。如：
+
+
+
+```go
+// +build linux darwin
+// +build 386
+等价于
+// +build (linux OR darwin) AND 386
+```
+
+ 
 
 ### 教程
 
