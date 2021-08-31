@@ -6,7 +6,8 @@ import "time"
 
 func main() {
 	fmt.Println("Hello, 世界1")
-	
+	//对于unbufferd channel，不存储任何数据，只负责数据的流通，并且数据的接收一定发生在数据发送完成之前。更详细的解释是，goroutine A在往channel发送数据完成之前，一定有goroutine //B在等着从这个channel接收数据，否则发送就会导致发送的goruntine被block住，所以发送和接收的goruntine是耦合的。
+
 	// 看下面这个例子，往ch发送数据时就使main gouruntine被永久block住，导致程序死锁。
 // 	var ch = make(chan string)
 // 	ch <- "hello" //fatal error: all goroutines are asleep - deadlock! goroutine 1 [chan send]:
