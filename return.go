@@ -8,6 +8,8 @@ func main() {
 	fmt.Println(f2()) //6
 	fmt.Println(f3()) //5
 	fmt.Println(f4()) //5
+	fmt.Println(f5()) //
+	fmt.Println(f6()) //
 }
 
 // golang语言中的return语句不是原子操作，
@@ -17,7 +19,7 @@ func main() {
 // 2、defer语句
 // 3、真正RET返回
 
-// 多个defer 后进先出
+// 多个defer 后进先出 like 栈 
 func f0() (x int) {
 	x = 5
 	defer func() {
@@ -61,4 +63,19 @@ func f4() (x int) {
 	return 5 //返回值RET=x=5, x`++, RET=5
 }
 
+func f5()(ret string ){
+    defer func() {
+		err:=recover()
+		if err!=nil{
+			ret=fmt.Sprint(err)
+		}
+	}()
+	panic("this is a panic")
+	return "normal"
+}
+
+func f6() (x int) {
+    f:=5
+    return f;
+}
 
