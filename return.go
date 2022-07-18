@@ -19,18 +19,21 @@ func main() {
 // 2、defer语句
 // 3、真正RET返回
 
-// 多个defer 后进先出 like 栈 
+// defer声明时会先计算确定参数的值，defer推迟执行的仅是其函数体。
+
+// 多个defer 后进先出
+// 多个defer 后进先出 like 栈
 func f0() (x int) {
 	x = 5
 	defer func() {
-	    fmt.Println("defer_1");
+		fmt.Println("defer_1")
 		x++
 	}()
 	defer func() {
-	    fmt.Println("defer_2");
+		fmt.Println("defer_2")
 	}()
-// 	return x //返回值RET=x, x++, RET=x=6
-	return 
+	// 	return x //返回值RET=x, x++, RET=x=6
+	return
 }
 
 func f1() int {
@@ -63,11 +66,11 @@ func f4() (x int) {
 	return 5 //返回值RET=x=5, x`++, RET=5
 }
 
-func f5()(ret string ){
-    defer func() {
-		err:=recover()
-		if err!=nil{
-			ret=fmt.Sprint(err)
+func f5() (ret string) {
+	defer func() {
+		err := recover()
+		if err != nil {
+			ret = fmt.Sprint(err)
 		}
 	}()
 	panic("this is a panic")
@@ -75,7 +78,6 @@ func f5()(ret string ){
 }
 
 func f6() (x int) {
-    f:=5
-    return f;
+	f := 5
+	return f
 }
-
