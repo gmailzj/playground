@@ -4484,6 +4484,112 @@ for rows.Next() {
 }
 ```
 
+### range
+
+```
+package main
+ 
+import (
+	"fmt"
+)
+ 
+func main() {
+	slice := []int{0, 1, 2, 3}
+	myMap := make(map[int]*int)
+ 
+	for _,v :=range slice{
+		if v==1 {
+			v=100
+		}
+	}
+	for k,v :=range slice{
+		fmt.Println("k:",k,"v:",v)
+	}
+}
+预想的结果应该是：
+
+k: 0 v: 0
+k: 1 v: 100
+k: 2 v: 2
+k: 3 v: 3
+
+但是实际上
+
+k: 0 v: 0
+k: 1 v: 1
+k: 2 v: 2
+k: 3 v: 3
+```
+
+值并没有改变，出现上述问题的原因是因为for range遍历的内容是对原内容的一个拷贝，所以不能用来修改原切片中内容。
+
+使用 k根据索引直接修改值。
+
+```
+for k,v :=range slice{
+		if v==1 {
+			slice[k]=100
+		}
+	}
+
+```
+
+map
+
+
+
+```
+ package main
+     
+    import (
+    	"fmt"
+    )
+     
+    func main() {
+     
+    	s :=[]int{1,2,3,4}
+    	m :=make(map[int]*int)
+     
+    	for k,v:=range s{
+    		m[k]=&v
+    	}
+    	for key, value := range m {
+    		fmt.Printf("map[%v]=%v\n", key, *value)
+    	}
+     
+    	fmt.Println(m)
+    }
+    
+    预期打印的值应该为：
+map[0]=1
+map[1]=2
+map[2]=3
+map[3]=4
+
+实际结果：
+map[2]=4
+map[3]=4
+map[0]=4
+map[1]=4
+map[0:0xc00012a008 1:0xc00012a008 2:0xc00012a008 3:0xc00012a008]
+```
+
+这里需要注意的是，`for range map`返回的`K-V`键值对顺序是不固定的，是随机的，
+
+从上面结果我们可以猜想到，range指向的都是同一个指针。
+
+其实还是因为for range创建的是每个元素的拷贝，而不是直接返回每个元素的引用，如果使用该值变量的地址作为指向每个元素的指针，就会导致错误，值的地址总是相同的。
+
+```
+声明一个中间变量，保存value,并且复制给map即可
+for k,v:=range s{
+		n:=v
+		m[k]= &n
+	}
+```
+
+
+
 ### 指针易错
 
 ```go
