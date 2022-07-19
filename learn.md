@@ -4486,6 +4486,279 @@ for rows.Next() {
 
 ### range
 
+range 是 Golang 语言定义的一种语法糖迭代器，1.5版本 Golang 引入自举编译器后 range 相关源码如下，根据类型不同进行不同的处理，支持对切片和数组、map、通道、字符串类型的的迭代。编译器会对每一种 range 支持的类型做专门的 “语法糖还原”。
+
+Go 语言中 range 关键字用于 for 循环中迭代数组(array)、切片(slice)、通道(channel)或集合(map)的元素
+
+ range 遍历开始前会创建副本
+
+
+
+数组
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+	var a = [5]int{1, 2, 3, 4, 5} 
+	 var r [5]int
+	 for i, v := range a { 
+		if i == 0 {
+			a[1] = 12
+			a[2] = 13 
+		}
+		r[i] = v 
+	 }
+	 fmt.Println("r = ", r) 
+	 fmt.Println("a = ", a)
+   }
+   
+   r =  [1 2 3 4 5]
+   a =  [1 12 13 4 5]
+```
+
+切片
+
+```
+package main
+
+import "fmt"
+
+func main() {
+    var a = []int{1, 2, 3, 4, 5} 
+    var r = make([]int,5)
+    for i, v := range a { 
+        if i == 0 {
+            a[1] = 12
+            a[2] = 13 
+        }
+        r[i] = v 
+     }
+     fmt.Println("r = ", r) 
+     fmt.Println("a = ", a)
+   
+   }
+   //注意变化
+   r =  [1 12 13 4 5]
+   a =  [1 12 13 4 5]
+```
+
+循环过程中依然创建了原切片的副本，但是因为切片自身的结构，创建的副本依然和原切片共享底层数组，只要没发生扩容，他们的值发生变化时就是同步变化的
+
+到这里我们一起来看下遍历数组和切片时源码是什么样的吧？源码比较长，我们大概挑选出来关键的简单汇总就是如下
+
+```
+ha := a   //创建副本
+hv1 := 0
+hn := len(ha)   //循环前长度已经确定
+v1 := hv1       //索引变量和取值变量都只在开始时声明，后面都是复用
+v2 := nil       
+for ; hv1 < hn; hv1++ {
+    tmp := ha[hv1]  
+    v1, v2 = hv1, tmp
+    ...
+}
+```
+
+这里给的是分析使用 for i, elem := range a {} 遍历数组和切片，同时关心索引和数据的情况，只关心索引或者只关心数据值的代码稍微不同，也就是关不关心 v1 和 v2 ，不关心直接nil掉。
+
+Golang 1.5版本之前的 gcc 源码中语法糖扩展的 range 源码我们也贴出来方便大家理解。
+
+```
+// The loop we generate:
+//   for_temp := range    //创建副本，数组的话重新复制新数组，切片的话复制新切片后，副本切片与原切片共享底层数组
+//   len_temp := len(for_temp)  //循环前长度已经确定
+//   for index_temp = 0; index_temp < len_temp; index_temp++ {
+//           value_temp = for_temp[index_temp]
+//           index = index_temp
+//           value = value_temp
+//           original body
+//   }
+```
+
+仔细看这两段代码，原来玄机都藏在这里了~~
+
+#### 循环次数在循环开始前已经确定
+
+循环开始前先计算了数组和切片的长度，for 循环用这个长度来限制循环次数的，也就是循环次数在循环开始前就已经确定了呐，so 循环中再怎么追加或者删除元素都不会影响循环次数，也就不会死循环了~~
+
+```
+func main() {
+   v := []int{1, 2, 3} 
+   counter := 0
+   for i := range v {
+      counter++
+      v = append(v, i) 
+   }
+   fmt.Println(counter)   //counter代表循环次数，3次哦，没有死循环，也不是6次，虽然v其实已经是长度为6的切片
+   fmt.Println(v)   //[1,2,3,0,1,2]
+}
+```
+
+#### 循环的时候会创建每个元素的副本
+
+```
+package main
+
+import "fmt"
+
+type T struct {
+     n int
+ }
+ func main() {
+     ts := [2]T{}
+     for i, t := range ts {
+         switch i {
+         case 0:
+             t.n = 3
+             ts[1].n = 9 
+         case 1:
+             fmt.Print(t.n, " ") 
+         }
+     }
+     fmt.Print(ts)
+ }
+```
+
+for-range 循环数组时使用的是数组 ts 的副本，所以 t.n = 3 的赋值操作不会影响原数组。但 `ts[1].n = 9`这种方式操作的确是原数组的元素值，所以是会发生变化的。这也是我们推崇的方法。
+
+### 循环的时候短声明只会在开始时执行一次，后面都是重用
+
+循环 index 和 value 在每次循环体中都会被重用，而不是新声明。for-range 循环里的短声明`index,value :=`相当于第一次是 := ，后面都是 =，所以变量地址是不变的，就相当于全局变量了。
+
+每次遍历会把被循环元素当前 key 和值赋给这两个全局变量，但是注意变量还是那个变量，地址不变，所以如果用的是地址的或者当前上下文环境值的话最后打印出来都是同一个值。
+
+
+
+```
+package main
+
+import "fmt"
+
+func main() {
+     slice := []int{0,1,2,3}
+     m := make(map[int]*int)
+     for key,val := range slice {
+       m[key] = &val
+       fmt.Println(key,&key)
+       fmt.Println(val,&val)
+     }
+     for k,v := range m {
+      fmt.Println(k,"->",*v)
+     }
+ }
+ 
+0 0xc000018058
+0 0xc000018060
+1 0xc000018058
+1 0xc000018060
+2 0xc000018058
+2 0xc000018060
+3 0xc000018058
+3 0xc000018060
+0 -> 3
+1 -> 3
+2 -> 3
+3 -> 3
+
+```
+
+key0、key1、key2、key3 其实都是短声明中的key变量，所以地址是一致的，val0、val1、val2、val3 其实都是短声明中的val变量，地址也一致
+
+最终遍历 map 进行输出时因为 map 赋值时用的是 val 的地址`m[key] = &val`,循环结束时 val 的值是3，所以最终输出时4个元素的值都是3。 
+
+这里需要注意 map 的遍历输出结果 key 的顺序可能会不一致，比如2，0，1，3这样，那是因为 map 的遍历输出是无序的，后面会再说，但是对应的 value 的值都是3。
+
+那如果想要新生成的map也输出正确的值怎么做呐？
+
+
+
+```
+package main
+
+import "fmt"
+
+func main() {
+     slice := []int{0,1,2,3}
+     m := make(map[int]*int)
+     for key,val := range slice {
+       value := val    //增加临时变量，每次都是新声明的，地址也就不一样，也就能传过去正确的值
+       m[key] = &value
+       fmt.Println(key,&key)
+       fmt.Println(val,&val)
+     }
+     for k,v := range m {
+      fmt.Println(k,"->",*v)
+     }
+ }
+ 0 0xc0000b2008
+0 0xc0000b2010
+1 0xc0000b2008
+1 0xc0000b2010
+2 0xc0000b2008
+2 0xc0000b2010
+3 0xc0000b2008
+3 0xc0000b2010
+1 -> 1
+2 -> 2
+3 -> 3
+0 -> 0
+
+```
+
+再来看下 for-range 循环中开启了协程会怎么样？
+
+```
+package main
+
+import "fmt"
+
+import "time"
+func main() {
+      var m = []int{1, 2, 3}
+     for i, v := range m {
+         go func() {
+             fmt.Println(i, v) 
+         }()
+     }
+     time.Sleep(time.Second * 1) 
+ }
+ 
+2 3
+2 3
+2 3
+```
+
+各个 goroutine 中输出的 i、v 值都是 for-range 循环结束后的 i、v 最终值，而不是各个 goroutine 启动时的 i, v值。因为 goroutine 执行是在后面的某一个时间，使用的是执行时上下文环境的变量值，i，v又相当于一个全局变量，协程执行时 for-range 循环已结束，i 和 v 都是最后一次循环的值2和3，所以最后输出都是2和3。
+
+两种方法，一种是**临时变量存储循环iv值进行使用**，另外一种是**通过函数参数进行传递** `go func(i,v){}(i,v)`
+
+```
+for i, v := range m {
+     index := i // 这里的 := 会新声明变量，而不是重用 
+     value := v
+     go func() {
+        fmt.Println(index, value) 
+     }()
+}
+```
+
+```
+for i, v := range m { 
+    go func(i,v int) {
+      fmt.Println(i, v) 
+    }(i,v)
+}
+```
+
+至于 for-range 中通过 append 函数为切片追加元素继而在循环外打印切片时元素值是否发生变化，取决于切片 append 的原理，容量是否足够，是否发生扩容生成新的底层数组，底层数组值是否发生改变等，不是本文的重点，这里就不详细说了~~
+
+
+
+
+
 ```
 package main
  
@@ -4534,9 +4807,11 @@ for k,v :=range slice{
 
 ```
 
+
+
+
+
 map
-
-
 
 ```
  package main
