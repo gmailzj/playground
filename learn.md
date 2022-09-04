@@ -1400,6 +1400,33 @@ func pow(x, n, lim float64) float64 {
 
 #### switch
 
+- `switch` 关键字后面接条件表达式
+- `case` 从上到下按顺序进行匹配，直到匹配成功
+- 如果没有匹配到 `case`, 且有 `default` 模式， 会执行 `default` 的代码块
+
+```go
+func defaultSwitch() {
+    switch time.Now().Weekday() {
+    case time.Saturday:
+        fmt.Println("Today is Saturday.")
+    case time.Sunday:
+        fmt.Println("Today is Sunday.")
+    default:
+        fmt.Println("Today is a weekday.")
+    }
+}
+
+func swi(){
+  switch time.Now().Weekday() {
+    case time.Saturday, time.Sunday:
+        fmt.Println("It's the weekend")
+    default:
+        fmt.Println("It's a weekday")
+    }
+}
+
+```
+
 你大概已经知道 `switch` 语句的样子了。
 
 ```go
@@ -1423,7 +1450,65 @@ switch var1 {
 
 因此，程序也不会自动地去执行下一个分支的代码。如果在执行完每个分支的代码后，还希望继续执行后续分支的代码，可以使用 `fallthrough` 关键字来达到目的。
 
-因此：
+golang中的fallthrough用在switch的case中，case执行完之后一般break，但可以使用 fallthrough 来强制执行下一个 case 代码块
+
+o里面switch默认相当于每个case最后带有break，匹配成功后不会自动向下执行其他case，而是跳出整个switch, 但是可以使用fallthrough强制执行后面的case代码(就算后面的case 是false)。
+
+```
+    i := 2
+    switch i {
+    case 1:
+        fmt.Println("one")
+        fallthrough
+    case 2:
+        fmt.Println("two")
+        fallthrough
+    case 3:
+        fmt.Println("three")
+    }
+    
+    
+    two
+    three // i!=3
+    
+```
+
+
+
+```go
+package main
+
+import "fmt"
+
+
+func main() {
+    switch {
+    case false:
+        fmt.Println("The integer was <= 4")
+        fallthrough
+    case true:
+        fmt.Println("The integer was <= 5")
+        fallthrough
+    case false:
+        fmt.Println("The integer was <= 6")
+        fallthrough
+    case true:
+        fmt.Println("The integer was <= 7")
+        fallthrough
+    case false:
+        fmt.Println("The integer was <= 8")
+    default:
+        fmt.Println("default case")
+    }
+}
+
+The integer was <= 5
+The integer was <= 6
+The integer was <= 7
+The integer was <= 8
+```
+
+
 
 ```go
 switch i {
@@ -1441,7 +1526,7 @@ switch i {
 }
 ```
 
-除非以 `fallthrough` 语句结束，否则分支会自动终止。
+除非以 `fallthrough` 语句结束，否则分支会自动终止。fallthrough不能用在switch的最后一个分支。
 
 ```go
 func main() {
@@ -1459,7 +1544,7 @@ func main() {
 }
 ```
 
-#### switch 的求值顺序
+##### switch 的求值顺序
 
 switch 的 case 语句从上到下顺次执行，直到匹配成功时停止。
 
@@ -1496,7 +1581,7 @@ func main() {
     switch {
         case num1 < 0:
             fmt.Println("Number is negative")
-        case num1 > 0 && num1 < 10:
+        case num1 >= 0 && num1 < 10:
             fmt.Println("Number is between 0 and 10")
         default:
             fmt.Println("Number is 10 or greater")
