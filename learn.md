@@ -1785,6 +1785,50 @@ Go 语言支持的位运算符如下表所示。假定 A 为60，B 为13：
 | ^=     | 按位异或后赋值                                 | C ^= 2 等于 C = C ^ 2                 |
 | \|=    | 按位或后赋值                                   | C \|= 2 等于 C = C \| 2               |
 
+#### golang逗号模式
+
+##### 在函数返回时检测错误
+
+```go
+// os.Open(file) strconv.Atoi(str)
+value, err := pack1.Func1(param1)
+
+if err != nil {
+    fmt.Printf(“Error %s in pack1.Func1 with parameter %v”, err.Error(), param1)
+    return err
+}
+```
+
+##### 检测映射中是否存在一个键值5
+
+```go
+if value, isPresent = map1[key1]; isPresent {
+        Process(value)
+}
+// key1不存在
+…
+```
+
+##### 检测一个接口类型变量varI是否包含了类型T
+
+```go
+if value, ok := varI.(T); ok {
+    Process(value)
+}
+// 接口类型varI没有包含类型T
+```
+
+##### 检测一个通道ch是否关闭
+
+```go
+ for {
+        if input, open := <-ch; !open {
+            break // 通道是关闭的
+        }
+        Process(input)
+    }
+```
+
 ## 指针
 
 Go 拥有指针。 指针保存了值的内存地址。
@@ -3279,6 +3323,122 @@ func describe(i interface{}) {
 
 ## 类型断言
 
+
+
+```undefined
+x.(T)
+```
+
+- 断言x不为nil且x为T类型
+- 如果T不是接口类型，则该断言x为T类型
+- 如果T类接口类型，则该断言x实现了T接口
+
+### 实例1
+
+
+
+```go
+func main() {
+    var x interface{} = 7
+    i := x.(int)
+    fmt.Println(reflect.TypeOf(i))
+    j := x.(int32)
+    fmt.Println(j)
+}
+```
+
+> 直接赋值的方式，如果断言为true则返回该类型的值，如果断言为false则产生runtime panic；j这里赋值直接panic
+
+输出
+
+
+
+```go
+int
+panic: interface conversion: interface {} is int, not int32
+
+goroutine 1 [running]:
+main.main()
+        type_assertion.go:12 +0xda
+exit status 2
+```
+
+不过一般为了避免panic，通过使用ok的方式
+
+```go
+func main() {
+    var x interface{} = 7
+    j, ok := x.(int32)
+    if ok {
+        fmt.Println(reflect.TypeOf(j))
+    } else {
+        fmt.Println("x not type of int32")
+    }
+}
+```
+
+### switch type
+
+另外一种就是variable.(type)配合switch进行类型判断
+
+
+
+```go
+func main() {
+    switch v := x.(type) {
+    case int:
+        fmt.Println("x is type of int", v)
+    default:
+        fmt.Printf("Unknown type %T!\n", v)
+    }
+}
+```
+
+### 判断struct是否实现某个接口
+
+
+
+```go
+type shape interface {
+    getNumSides() int
+    getArea() int
+}
+type rectangle struct {
+    x int
+    y int
+}
+
+func (r *rectangle) getNumSides() int {
+    return 4
+}
+func (r rectangle) getArea() int {
+    return r.x * r.y
+}
+
+func main() {
+    // compile time Verify that *rectangle implement shape
+    var _ shape = &rectangle{}
+    // compile time Verify that *rectangle implement shape
+    var _ shape = (*rectangle)(nil)
+
+    // compile time Verify that rectangle implement shape
+    var _ shape = rectangle{}
+  	// 上面会报错，
+}
+```
+
+输出
+
+```rust
+cannot use rectangle literal (type rectangle) as type shape in assignment:
+        rectangle does not implement shape (getNumSides method has pointer receiver)
+```
+
+### 小结
+
+- `x.(T)`可以在运行时判断x是否为T类型，如果直接使用赋值，当不是T类型时则会产生runtime panic
+- 使用`var _ someInterface = someStruct{}`可以在编译时期校验某个struct或者其指针类型是否实现了某个接口
+
 **类型断言** 提供了访问接口值底层具体值的方式。
 
 ```
@@ -3287,7 +3447,7 @@ t := i.(T)
 
 该语句断言接口值 `i` 保存了具体类型 `T` ，并将其底层类型为 `T` 的值赋予变量 `t` 。
 
-若 `i` 并未保存 `T` 类型的值，该语句就会触发一个恐慌。
+若 `i` 并未保存 `T` 类型的值，该语句就会触发一个panic。
 
 为了 **判断** 一个接口值是否保存了一个特定的类型， 类型断言可返回两个值：其底层值以及一个报告断言是否成功的布尔值。
 
@@ -3297,7 +3457,7 @@ t, ok := i.(T)
 
 若 `i` 保存了一个 `T` ，那么 `t` 将会是其底层值，而 `ok` 为 `true` 。
 
-否则， `ok` 将为 `false` 而 `t` 将为 `T` 类型的零值，程序并不会产生恐慌。
+否则， `ok` 将为 `false` 而 `t` 将为 `T` 类型的零值，程序并不会产生panic。
 
 请注意这种语法和读取一个映射时的相同之处。
 
