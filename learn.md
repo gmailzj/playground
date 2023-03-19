@@ -3158,6 +3158,21 @@ func main(){
 
 ### uintptr
 
+**参照注释我们知道：**
+
+- uintptr 是一个整数类型（这个非常重要），注意，他不是个指针；
+- 但足够保存任何一种指针类型。
+
+**unsafe 包支持了这些方法来完成【类型】=> uintptr 的转换：**
+
+```
+func Sizeof(x ArbitraryType) uintptr
+func Offsetof(x ArbitraryType) uintptr
+func Alignof(x ArbitraryType) uintptr
+```
+
+你可以将任意类型变量转入，获取对应语义的 uintptr，用来后续计算内存地址（比如基于一个结构体字段地址，获取下一个字段地址等）。
+
 源码定义：
 
 ```vhdl
