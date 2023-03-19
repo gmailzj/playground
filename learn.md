@@ -3099,7 +3099,120 @@ func main() {
 }
 ```
 
+### 指针类型和unsafe.Pointer
 
+我们一般将 *T 看作指针类型，表示一个指向 T 类型变量的指针。我们都知道 Go 是强类型语言，声明变量之后，变量的类型是不可以改变的，不同类型的指针也不允许相互转化。例如下面这样：
+
+```
+ i := 30
+ iPtr1 := &i
+ var iPtr2 *int64 = (*int64)(iPtr1)
+ 编译报错：cannot convert iPtr1 (type *int) to type *int64，提示不能进行强制转化。
+```
+
+如何实现相互转化
+
+Go 官方提供了 unsafe 包
+
+unsafe.Pointer **通用指针类型**，一种特殊类型的指针，可以包含任意类型的地址，能实现不同的指针类型之间进行转换，类似于 C 语言里的 void* 指针。
+
+```haskell
+type ArbitraryType int
+
+type Pointer *ArbitraryType
+```
+
+从定义可以看出，Pointer 实际上是 *int。
+
+官方文档里还描述了 Pointer 的四种操作规则：
+
+1. 任何类型的指针都可以转化成 unsafe.Pointer；
+2. unsafe.Pointer 可以转化成任何类型的指针；
+3. uintptr 可以转换为 unsafe.Pointer；
+4. unsafeP.ointer 可以转换为 uintptr；
+
+不同类型的指针允许相互转化实际上是运用了第 1、2 条规则，我们就着例子看下：
+
+```go
+func main(){
+ i := 30
+ iPtr1 := &i
+
+ var iPtr2 *int64 = (*int64)(unsafe.Pointer(iPtr1))
+
+ *iPtr2 = 8
+
+ fmt.Println(i)
+}
+```
+
+输出：
+
+```undefined
+8
+```
+
+上面的代码，我们可以把 *int 转为 *int64，并且对新的 *int64 进行操作，从输出会发现 i 的值被改变了。
+
+可以说 unsafe.Pointer 是桥梁，可以让任意类型的指针实现相互转换。
+
+### uintptr
+
+源码定义：
+
+```vhdl
+// uintptr is an integer type that is large enough to hold the bit pattern of
+// any pointer.
+type uintptr uintptr
+```
+
+uintptr 是 Go 内置类型，表示无符号整数，可存储一个完整的地址。常用于指针运算，只需将 unsafe.Pointer 类型转换成 uintptr 类型，做完加减法后，转换成 unsafe.Pointer，通过 * 操作，取值或者修改值都可以。
+
+下面是一个通过指针偏移修改结构体成员的例子，演示下 uintptr 的用法：
+
+```go
+type Admin struct {
+ Name string
+ Age int
+}
+
+func main(){
+ admin := Admin{
+  Name: "seekload",
+  Age: 18,
+ }
+ ptr := &admin
+ name := (*string)(unsafe.Pointer(ptr))   // 1
+
+ *name = "四哥"
+
+ fmt.Println(*ptr)
+
+ age := (*int)(unsafe.Pointer(uintptr(unsafe.Pointer(ptr)) + unsafe.Offsetof(ptr.Age)))  // 2
+ *age = 35
+
+ fmt.Println(*ptr)
+}
+```
+
+输出：
+
+```undefined
+{四哥 18}
+{四哥 35}
+```
+
+特别提下，**unsafe.Offsetof** 的作用是返回成员变量 x 在结构体当中的偏移量，即返回结构体初始内存地址到 x 之间的字节数。
+
+//1 因为**结构体初始地址就是第一个成员的地址**，又 Name 是结构体第一个成员变量，所以此处不用偏移，我们拿到 admin 的地址，然后通过 unsafe.Pointer 转为 *string，再进行赋值操作即可。注意：如果结构体第一个不是Name, 会报错
+
+//2 成员变量 Age 不是第一个字段，想要修改它的值就需要内存偏移。我们先将 admin 的指针转化为 uintptr，再通过 unsafe.Offsetof() 获取到 Age 的偏移量，两者都是 uintptr，进行相加指针运算获取到成员 Age 的地址，最后需要将 uintptr 转化为 unsafe.Pointer，再转化为 *int，才能对 Age 操作。
+
+
+
+1. unsafe.Pointer 可以实现不同类型指针之间相互转化；
+2. uintptr 搭配着 unsafe.Pointer 使用，实现指针运算；
+3. 
 
 ## 接口
 
