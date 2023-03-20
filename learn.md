@@ -3213,6 +3213,11 @@ func main(){
  *age = 35
 
  fmt.Println(*ptr)
+  
+  x := [4]byte{10, 11, 12, 13}
+	elPtr := (*byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&x[0])) + 3*unsafe.Sizeof(x[0])))
+  fmt.Println(*elPtr)
+
 }
 ```
 
