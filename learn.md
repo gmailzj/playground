@@ -1829,113 +1829,7 @@ if value, ok := varI.(T); ok {
     }
 ```
 
-## 指针
 
-Go 拥有指针。 指针保存了值的内存地址。
-
-类型 `*T` 是指向 `T` 类型值的指针。其零值为 `nil` 。
-
-```
-var p *int
-```
-
-`&` 操作符会生成一个指向其操作数的指针。
-
-```
-i := 42
-p = &i
-```
-
-`*` 操作符表示指针指向的底层值。
-
-```
-fmt.Println(*p) // 通过指针 p 读取 i
-*p = 21         // 通过指针 p 设置 i
-```
-
-这也就是通常所说的“间接引用”或“重定向”。
-
-与 C 不同，Go 没有指针运算。
-
-```go
-package main
-
-import "fmt"
-
-func main() {
-    
-    
-	i, j := 42, 2701
-	p := &i         // point to i
-	fmt.Println(*p) // read i through the pointer
-	*p = 21         // set i through the pointer
-	fmt.Println(i)  // see the new value of i
-
-	p = &j         // point to j
-	*p = *p / 37   // divide j through the pointer
-	fmt.Println(j) // see the new value of j
-}
-/*
-result:
-42
-21
-73
-*/
-```
-
-- 在 `Go` 中 `*` 代表取指针地址中存的值，`&` 代表取一个值的地址
-
-- 对于指针，我们一定要明白指针储存的是一个值的地址，但本身这个指针也需要地址来储存
-
-  ```go
-  package main
-  
-  import "fmt"
-  
-  func main() {
-  	var p *int
-  	p = new(int)
-  	*p = 1
-  	fmt.Println(p, &p, *p)
-  }
-  
-  输出
-  0xc04204a080  0xc042068018  1
-  
-  ```
-
-  - 如上 `p` 是一个指针，他的值为[内存地址](https://www.baidu.com/s?wd=%E5%86%85%E5%AD%98%E5%9C%B0%E5%9D%80&tn=24004469_oem_dg&rsv_dl=gh_pl_sl_csd) `0xc04204a080`
-  - 而 `p` 的内存地址为 `0xc042068018`
-  - 内存地址 `0xc04204a080` 储存的值为 `1`
-
-**错误实例**
-
-在 **golang** 中如果我们定义一个指针并像普通变量那样给他赋值，例如下方的代码
-
-```go
-package main
-
-import "fmt"
-func main() {
-	var i *int
-	*i = 1
-    fmt.Println(i, &i, *i)
-}
-
-```
-
-- 就会报这样的一个错误
-
-  ```go
-  panic: runtime error: invalid memory address or nil pointer dereference
-  [signal 0xc0000005 code=0x1 addr=0x0 pc=0x498025]
-  ```
-
-- 这个错的原因是 `go` 初始化指针的时候会为指针 `i` 的值赋为 `nil` ，但 `i` 的值代表的是 `*i`的地址， `nil` 的话系统还并没有给 `*i` 分配地址，所以这时给 `*i` 赋值肯定会出错
-
-- 解决这个问题非常简单，在给指针赋值前可以先**创建一块内存**分配给赋值对象即可
-
-  `i = new(int)`
 
 
 
@@ -2834,6 +2728,118 @@ func main() {
 }
 ```
 
+
+
+## 指针
+
+Go 拥有指针。 指针保存了值的内存地址。
+
+类型 `*T` 是指向 `T` 类型值的指针。其零值为 `nil` 。
+
+```
+var p *int
+```
+
+`&` 操作符会生成一个指向其操作数的指针。
+
+```
+i := 42
+p = &i
+```
+
+`*` 操作符表示指针指向的底层值。
+
+```
+fmt.Println(*p) // 通过指针 p 读取 i
+*p = 21         // 通过指针 p 设置 i
+```
+
+这也就是通常所说的“间接引用”或“重定向”。
+
+与 C 不同，Go 没有指针运算。
+
+```go
+package main
+
+import "fmt"
+
+func main() {
+    
+    
+	i, j := 42, 2701
+	p := &i         // point to i
+	fmt.Println(*p) // read i through the pointer
+	*p = 21         // set i through the pointer
+	fmt.Println(i)  // see the new value of i
+
+	p = &j         // point to j
+	*p = *p / 37   // divide j through the pointer
+	fmt.Println(j) // see the new value of j
+}
+/*
+result:
+42
+21
+73
+*/
+```
+
+- 在 `Go` 中 `*` 代表取指针地址中存的值，`&` 代表取一个值的地址
+
+- 对于指针，我们一定要明白指针储存的是一个值的地址，但本身这个指针也需要地址来储存
+
+  ```go
+  package main
+  
+  import "fmt"
+  
+  func main() {
+  	var p *int
+  	p = new(int)
+  	*p = 1
+  	fmt.Println(p, &p, *p)
+  }
+  
+  输出
+  0xc04204a080  0xc042068018  1
+  
+  ```
+
+  - 如上 `p` 是一个指针，他的值为[内存地址](https://www.baidu.com/s?wd=%E5%86%85%E5%AD%98%E5%9C%B0%E5%9D%80&tn=24004469_oem_dg&rsv_dl=gh_pl_sl_csd) `0xc04204a080`
+  - 而 `p` 的内存地址为 `0xc042068018`
+  - 内存地址 `0xc04204a080` 储存的值为 `1`
+
+**错误实例**
+
+在 **golang** 中如果我们定义一个指针并像普通变量那样给他赋值，例如下方的代码
+
+```go
+package main
+
+import "fmt"
+func main() {
+	var i *int
+	*i = 1
+    fmt.Println(i, &i, *i)
+}
+
+```
+
+- 就会报这样的一个错误
+
+  ```go
+  panic: runtime error: invalid memory address or nil pointer dereference
+  [signal 0xc0000005 code=0x1 addr=0x0 pc=0x498025]
+  ```
+
+- 这个错的原因是 `go` 初始化指针的时候会为指针 `i` 的值赋为 `nil` ，但 `i` 的值代表的是 `*i`的地址， `nil` 的话系统还并没有给 `*i` 分配地址，所以这时给 `*i` 赋值肯定会出错
+
+- 解决这个问题非常简单，在给指针赋值前可以先**创建一块内存**分配给赋值对象即可
+
+  `i = new(int)`
+
+  
+
 ## 指针接收者
 
 你可以为指针接收者声明方法。
@@ -3129,7 +3135,7 @@ type Pointer *ArbitraryType
 1. 任何类型的指针都可以转化成 unsafe.Pointer；
 2. unsafe.Pointer 可以转化成任何类型的指针；
 3. uintptr 可以转换为 unsafe.Pointer；
-4. unsafeP.ointer 可以转换为 uintptr；
+4. unsafe.Pointer 可以转换为 uintptr；
 
 不同类型的指针允许相互转化实际上是运用了第 1、2 条规则，我们就着例子看下：
 
@@ -3227,7 +3233,10 @@ func main(){
 
 1. unsafe.Pointer 可以实现不同类型指针之间相互转化；
 2. uintptr 搭配着 unsafe.Pointer 使用，实现指针运算；
-3. 
+
+
+
+
 
 ## 接口
 
@@ -4310,6 +4319,60 @@ func main() {
 // 根据发送数据、接收数据、数据处理的速度合理的设计buffer size，甚至可以在不浪费空间的情况下做到没有任何延迟
 // 如果channel buffer已经塞满了数据，继续执行发送会导致当前goruntine被block住（阻塞），直到channel中的数据被取走一部分才可以继续向channel发送数据
 ```
+
+
+
+## 数据结构与算法
+
+
+
+#### 冒泡排序
+
+```go
+package main
+
+import (
+    "fmt"
+    
+)
+
+// 冒泡排序函数
+func bubbleSort(arr []int) {
+    // 获取数组长度
+    n := len(arr)
+    // 外层循环控制遍历次数
+    for i := 0; i < n-1; i++ {
+        // 设置一个标志变量
+        flag := false
+        // 内层循环控制比较和交换
+        for j := 0; j < n-i-1; j++ {
+            // 如果前一个元素大于后一个元素，就交换它们的位置，并把标志变量设为true
+            if arr[j] > arr[j+1] {
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+                flag = true
+            }
+        }
+        // 如果标志变量为false，说明没有发生交换，数组已经有序，直接退出循环
+        if !flag {
+            break
+        }
+    }
+}
+
+// 测试代码
+func main() {
+    // 定义一个数组
+    arr := []int{5, 3, 7, 2, 9, 4}
+    // 打印原始数组
+    fmt.Println("Original array:", arr)
+    // 调用冒泡排序函数
+    bubbleSort(arr)
+    // 打印排序后的数组
+    fmt.Println("Sorted array:", arr)
+}
+```
+
+
 
 
 
