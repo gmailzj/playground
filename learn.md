@@ -5513,3 +5513,14 @@ https://book.eddycjy.com/golang/gin/reload-http.html
 Go 程序热编译工具，提升开发效率
 
 https://github.com/silenceper/gowatch/blob/master/README_ZH_CN.md
+
+
+
+goland 配置SDK时会出现 "The selected directory is not a valid home for Go SDK" 的错误提示
+
+修改 Go path 路径下 C:\Program Files\Go\src\runtime\internal\sys\zversion.go文件, 添加一行版本信息，改成实际的版本号，然后重启goland
+
+```
+const TheVersion = `go1.17.6`
+```
+
