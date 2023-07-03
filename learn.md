@@ -2580,6 +2580,84 @@ func main() {
 
 
 
+#### make
+
+golang 分配内存主要有内置函数new和make。
+
+map只能为slice, map, channel分配内存，并返回一个初始化的值。首先来看下make有以下三种不同的用法：
+
+1. make(map[string]string)
+
+2. make([]int, 2)
+
+3. make([]int, 2, 4)
+4. make(chan int, 3)
+
+ 
+
+1. 第一种用法，即缺少长度的参数，只传类型，这种用法只能用在类型为map或chan的场景，例如make([]int)是会报错的。这样返回的空间长度都是默认为0的。
+
+2. 第二种用法，指定了长度，例如make([]int, 2)返回的是一个长度为2的slice
+
+3. 第三种用法，第二参数指定的是切片的长度，第三个参数是用来指定预留的空间长度，例如a := make([]int, 2, 4), 这里值得注意的是返回的切片a的总长度是4，预留的意思并不是另外多出来4的长度，其实是包含了前面2个已经切片的个数的。所以举个例子当你这样用的时候 a := make([]int, 4, 2)，就会报语法错误。
+
+
+
+#### new
+
+基本数据类型以外，new关键字同样可以用于创建用户自定义类型的实例
+
+```
+data := new(int)
+
+// 创建一个未命名的 int 类型变量，初始值是 0，返回值 p 是指向 int 类型变量的指针。
+p := new(int)
+fmt.Println(p, *p) // 0xc00001c0b8 0
+// 创建一个未命名的 string 类型变量，初始值是 "", 返回值是 q 是指向 string 类型变量的指针。
+q := new(string)
+fmt.Println(q, *q) // 0xc000010240 ""
+```
+
+使用 new 创建一个变量和先通过 var 初始化一个变量，然后对这个变量取地址没什么不同，唯一的区别是，通过 new 函数不需要引入变量名称，所以使用上更加简洁、便利。
+
+```
+package main
+
+import "fmt"
+
+func newInt1() *int {
+    return new(int)
+}
+
+func newInt2() *int {
+    var a int
+    return &a
+}
+
+func main() {
+    p := newInt1()
+    q := newInt2()
+    fmt.Println(p, q) // 0xc00001c0b8 0xc00001c0c0
+}
+```
+
+```
+package main
+
+import "fmt"
+
+
+type Point struct {}
+
+func main() {
+    p2 := new(Point)
+    q2 := new(Point)
+    fmt.Println(p2, q2, p2 == q2) // &{} &{} true
+}
+```
+
+
+
 ## 函数值
 
 函数也是值。它们可以像其它值一样传递。
