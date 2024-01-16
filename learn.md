@@ -4266,7 +4266,7 @@ channel作为go的一种基本数据类型，它有3种基本状态：nil、open
 
 ```go
 /* nil channel */
-var ch = chan string // A channel is in a nil state when it is declared to its zero value
+var ch  chan string // A channel is in a nil state when it is declared to its zero value
 ch = nil // A channel can be placed in a nil state
  
 /* open channel */
