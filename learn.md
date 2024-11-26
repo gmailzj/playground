@@ -5008,6 +5008,149 @@ $ go doc -src strings.Replace   # View the source code for the strings.Replace f
 
 函数结尾加上`// Output:`注释, 说明函数返回的值
 
+
+
+### Go防缓存击穿——singleflight
+
+接口的访问量突然上升，导致服务响应延迟或者宕机的情况。这时除了利用缓存之外，也可以用到`singlefilght`来解决
+
+简单的示例
+
+```go
+package main
+
+import (
+    "fmt"
+    "sync"
+    "sync/atomic"
+    "time"
+
+    "golang.org/x/sync/singleflight"
+)
+
+func main() {
+    g := singleflight.Group{}
+
+    wg := sync.WaitGroup{}
+
+    for i := 0; i < 100; i++ {
+        wg.Add(1)
+        go func(j int) {
+            defer wg.Done()
+            val, err, shared := g.Do("a", a)
+            if err != nil {
+                fmt.Println(err)
+                return
+            }
+            fmt.Printf("index: %d, val: %d, shared: %v\n", j, val, shared)
+        }(i)
+    }
+
+    wg.Wait()
+
+}
+
+var (
+    count = int64(0)
+)
+
+// 模拟接口方法
+func a() (interface{}, error) {
+    time.Sleep(time.Millisecond * 500)
+    return atomic.AddInt64(&count, 1), nil
+}
+
+// 部分输出，shared表示是否共享了其他请求的返回结果
+index: 2, val: 1, shared: false
+index: 71, val: 1, shared: true
+index: 69, val: 1, shared: true
+index: 73, val: 1, shared: true
+index: 8, val: 1, shared: true
+index: 24, val: 1, shared: true
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"golang.org/x/sync/singleflight"
+	"log"
+	"net/http"
+	"time"
+)
+
+var (
+	sf singleflight.Group
+)
+
+func expensiveOperation(key string) (interface{}, error) {
+	fmt.Println("expensiveOperation")
+	// 模拟一个耗时的操作，比如数据库查询或者远程API调用
+	time.Sleep(2500 * time.Millisecond)
+	return fmt.Sprintf("Result for %s", key), nil
+}
+
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("************************", time.Now().Unix())
+
+	key := "example_key"
+	fmt.Println(key)
+	v, err, _ := sf.Do(key, func() (interface{}, error) {
+		return expensiveOperation(key)
+	})
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	fmt.Fprintln(w, v)
+	fmt.Println("end ************************", time.Now().Unix())
+
+}
+
+func main() {
+	http.HandleFunc("/", handleRequest)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+```
+
+`singleflight`核心代码非常简单
+
+```
+// 成员非常少，就两个
+type Group struct {
+    mu sync.Mutex      
+    m  map[string]*call
+}
+
+func (g *Group) Do(key string, fn func() (interface{}, error)) (v interface{}, err error, shared bool) {
+    g.mu.Lock()
+    if g.m == nil {
+        g.m = make(map[string]*call)
+    }
+    // 判断key是否存在，存在则表示有其他请求先一步进来，
+    // 直接等待其他请求返回就行
+    if c, ok := g.m[key]; ok {
+        c.dups++
+        g.mu.Unlock()
+        c.wg.Wait()
+        return c.val, c.err, true
+    }
+    // 不存在就创建一个新的call对象，然后去执行
+    c := new(call)
+    c.wg.Add(1)
+    g.m[key] = c
+    g.mu.Unlock()
+
+    g.doCall(c, key, fn)
+    return c.val, c.err, c.dups > 0
+}
+```
+
+
+
 ### Go make 和 new 的区别
 
 #### new(T) 返回的是 T 的指针
