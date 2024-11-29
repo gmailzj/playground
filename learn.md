@@ -3974,31 +3974,7 @@ func main() {
 }
 ```
 
-## Sync
 
-`WaitGroup` 对象内部有一个计数器，最初从0开始，它有三个方法：`Add(), Done(), Wait()` 用来控制计数器的数量。`Add(n)` 把计数器设置为`n` ，`Done()` 每次把计数器`-1` ，`wait()` 会阻塞代码的运行，直到计数器的值减为`0`。
-
-```go
-func main() {
-    wg := sync.WaitGroup{}
-    wg.Add(100)
-    for i := 0; i < 100; i++ {
-        go func(i int) {
-            fmt.Println(i)
-            wg.Done()
-        }(i)
-    }
-    wg.Wait()
-}
-```
-
-这里首先把`wg` 计数设置为`100`， 每个`for`循环运行完毕都把计数器减一，主函数中使用`Wait()` 一直阻塞，直到`wg`为零——也就是所有的`100`个`for`循环都运行完毕。相对于使用管道来说，`WaitGroup` 轻巧了许多。
-
-### 1. 计数器不能为负值
-
-不能使用`Add()` 给`wg` 设置一个负值
-
-使用`Done()` 也不要把计数器设置成负数了。
 
 ## Goroutines协程
 
@@ -4559,7 +4535,205 @@ func main() {
 }
 ```
 
-## sync.Mutex
+### Sync
+
+#### sync/atomic
+
+
+
+sync/atomic 主要包括以下几种原子操作
+
+原子整数操作  如 AddInt32 、CompareAndSwapInt32
+
+
+
+CAS是"Compare and Swap"（比较并交换）
+
+CAS是"Compare and Swap"（比较并交换）的缩写，是一种多线程同步的原子操作。它基于硬件的原子性保证，用于解决并发环境下的数据竞争和线程安全问题。
+
+CAS操作包括三个参数：内存地址V、旧的预期值A和新的值B。它的执行步骤如下：
+
+1. 从内存中读取V的当前值；
+
+2. 比较当前值与预期值A是否相等；
+
+3. 如果相等，则将V的值更新为B；
+
+4. 如果不相等，则不做任何操作。
+
+   
+
+##### 1.`CompareAndSwap`在Go语言中的含义
+
+`CompareAndSwap`（简称CAS）是Go语言中原子操作的一种，用于在多线程环境下安全地进行数据更新。它通过比较并交换的方式，确保在数据被其他线程修改之前，当前线程能够成功地更新数据。如果数据在比较时与预期值一致，那么就会用新值替换旧值，并返回`true`；如果不一致，则不进行替换，并返回`false`。
+
+##### 2.`CompareAndSwap`在Go语言中的使用场景
+
+`CompareAndSwap`常用于实现无锁数据结构，如无锁队列、无锁链表等，以及在高并发环境下进行安全的计数器更新、状态标记等。通过使用CAS操作，可以避免使用重量级的锁机制，从而提高程序的并发性能。
+
+##### 3.`CompareAndSwap`在Go语言中的基本语法和参数
+
+在Go语言中，`CompareAndSwap`是`sync/atomic`包中的一个函数。其基本语法如下
+
+```go
+func SwapInt32(addr *int32, new int32) (old int32)
+func SwapInt64(addr *int64, new int64) (old int64)
+func SwapUint32(addr *uint32, new uint32) (old uint32)
+func SwapUint64(addr *uint64, new uint64) (old uint64)
+func SwapUintptr(addr *uintptr, new uintptr) (old uintptr)
+func SwapPointer(addr *unsafe.Pointer, new unsafe.Pointer) (old unsafe.Pointer)
+
+func CompareAndSwapInt32(addr *int32, old, new int32) (swapped bool)
+func CompareAndSwapInt64(addr *int64, old, new int64) (swapped bool)
+func CompareAndSwapUint32(addr *uint32, old, new uint32) (swapped bool)
+func CompareAndSwapUint64(addr *uint64, old, new uint64) (swapped bool)
+func CompareAndSwapUintptr(addr *uintptr, old, new uintptr) (swapped bool)
+func CompareAndSwapPointer(addr *unsafe.Pointer, old, new unsafe.Pointer) (swapped bool)
+
+func LoadInt32(addr *int32) (val int32)
+func LoadInt64(addr *int64) (val int64)
+func LoadUint32(addr *uint32) (val uint32)
+func LoadUint64(addr *uint64) (val uint64)
+func LoadUintptr(addr *uintptr) (val uintptr)
+func LoadPointer(addr *unsafe.Pointer) (val unsafe.Pointer)
+
+
+func AddInt32(addr *int32, delta int32) (new int32)
+func AddInt64(addr *int64, delta int64) (new int64)
+func AddUint32(addr *uint32, delta uint32) (new uint32)
+func AddUint64(addr *uint64, delta uint64) (new uint64)
+func AddUintptr(addr *uintptr, delta uintptr) (new uintptr)
+
+
+func LoadInt32(addr *int32) (val int32)
+func LoadInt64(addr *int64) (val int64)
+func LoadUint32(addr *uint32) (val uint32)
+func LoadUint64(addr *uint64) (val uint64)
+func LoadUintptr(addr *uintptr) (val uintptr)
+func LoadPointer(addr *unsafe.Pointer) (val unsafe.Pointer)
+
+
+func StoreInt32(addr *int32, val int32)
+func StoreInt64(addr *int64, val int64)
+func StoreUint32(addr *uint32, val uint32)
+func StoreUint64(addr *uint64, val uint64)
+func StoreUintptr(addr *uintptr, val uintptr)
+func StorePointer(addr *unsafe.Pointer, val unsafe.Pointer)
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"sync"
+	"sync/atomic"
+)
+
+func main() {
+	var counter int32 = 0
+	var wg sync.WaitGroup
+
+	// 启动多个goroutine进行并发更新
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 100; j++ {
+				// 使用CAS进行无锁更新
+				for {
+					old := atomic.LoadInt32(&counter)
+					new := old + 1
+					if atomic.CompareAndSwapInt32(&counter, old, new) {
+						break
+					}
+				}
+			}
+		}()
+	}
+
+	// 等待所有goroutine完成
+	wg.Wait()
+
+	// 输出最终结果
+	fmt.Println("Final counter value:", atomic.LoadInt32(&counter))
+}
+
+```
+
+在示例代码中，`CompareAndSwapInt32`用于在多个goroutine之间安全地更新`counter`变量的值。每个goroutine都会尝试将`counter`的值加1，但由于存在并发访问，直接使用`counter++`可能会导致数据竞争和错误的结果。
+
+通过使用`CompareAndSwapInt32`，我们可以在每次更新之前先加载当前值`old`，然后计算新值`new`。接着，我们使用`CompareAndSwapInt32`函数尝试将`counter`的值从`old`更新为`new`。如果`counter`的值在比较时仍然为`old`，则更新成功，并返回`true`，表示我们成功地进行了一次无锁更新。如果`counter`的值已经被其他goroutine修改，则`CompareAndSwapInt32`返回`false`，我们需要重新加载当前值并尝试再次更新。
+
+
+
+推荐使用**对应类型**的原子操作, 比如**Int32**
+
+源码
+
+```go
+type Int32 struct {
+   _ noCopy
+   v int32
+}
+
+// Load atomically loads and returns the value stored in x.
+func (x *Int32) Load() int32 { return LoadInt32(&x.v) }
+
+// Store atomically stores val into x.
+func (x *Int32) Store(val int32) { StoreInt32(&x.v, val) }
+
+// Swap atomically stores new into x and returns the previous value.
+func (x *Int32) Swap(new int32) (old int32) { return SwapInt32(&x.v, new) }
+
+// CompareAndSwap executes the compare-and-swap operation for x.
+func (x *Int32) CompareAndSwap(old, new int32) (swapped bool) {
+   return CompareAndSwapInt32(&x.v, old, new)
+}
+
+// Add atomically adds delta to x and returns the new value.
+func (x *Int32) Add(delta int32) (new int32) { return AddInt32(&x.v, delta) }
+
+
+var done atomic.Uint32
+```
+
+
+
+
+
+
+
+
+### 
+
+#### sync.WaitGroup
+
+`WaitGroup` 对象内部有一个计数器，最初从0开始，它有三个方法：`Add(n), Done(), Wait()` 用来控制计数器的数量。`Add(n)` 把计数器设置为`n` ，`Done()` 每次把计数器`-1` ，`wait()` 会阻塞代码的运行，直到计数器的值减为`0`。
+
+```go
+func main() {
+    wg := sync.WaitGroup{}
+    wg.Add(100)
+    for i := 0; i < 100; i++ {
+        go func(i int) {
+            fmt.Println(i)
+            wg.Done()
+        }(i)
+    }
+    wg.Wait()
+}
+```
+
+这里首先把`wg` 计数设置为`100`， 每个`for`循环运行完毕都把计数器减一，主函数中使用`Wait()` 一直阻塞，直到`wg`为零——也就是所有的`100`个`for`循环都运行完毕。相对于使用管道来说，`WaitGroup` 轻巧了许多。
+
+1. 计数器不能为负值
+
+不能使用`Add()` 给`wg` 设置一个负值
+
+使用`Done()` 也不要把计数器设置成负数了。
+
+#### sync.Mutex
 
 我们已经看到信道非常适合在各个 Go 程间进行通信。
 
@@ -4617,6 +4791,204 @@ func main() {
 	fmt.Println(c.Value("somekey"))
 }
 ```
+
+#### sync.RWMutex
+
+**sync.Mutex互斥锁（排他锁）：**同一时刻一段代码只能被一个线程运行，在Lock()和Unlock()之间的代码段称为资源的临界区(critical section)，是线程安全的，任何一个时间点都只能有一个goroutine执行这段区间的代码。
+
+方法：Lock（加锁）、Unlock（解锁）
+
+但Mutex在大量并发的情况下，会造成锁等待，对性能的影响比较大。如果某个读操作的协程加了锁，其他的协程没必要处于等待状态，可以并发地访问共享变量，这样能让读操作并行，提高读性能。
+如果我们可以明确区分reader和writer的协程场景，且是大量的并发读、少量的并发写，有强烈的性能需要，我们就可以考虑使用**读写锁RWMutex**替换Mutex
+
+
+
+`sync.RWMutex`是读写锁，它区分了读操作和写操作。允许多个`goroutine`同时进行读操作，但在进行写操作时，会阻塞其他`goroutine`的读操作和写操作。这种设计可以提高读操作的并发度，因为读操作通常是并发安全的，只要在没有写操作进行的情况下。
+
+RWMutex是Go语言中内置的一个reader/writer锁，用来解决读者-写者问题（Readers–writers problem）。在任意一时刻，一个RWMutex只能由任意数量的reader持有，或者只能由一个writer持有。
+
+##### 读者-写者问题
+
+读者-写者问题（Readers–writers problem）描述了计算机并发处理读写数据遇到的问题，如何保证数据完整性、一致性。解决读者-写者问题需保证对于一份资源操作满足以下下条件：
+
+- 读写互斥
+- 写写互斥
+- 允许多个读者同时读取
+
+解决读者-写者问题，可以采用`读者优先（readers-preference）`方案或者`写者优先（writers-preference）`方案。
+
+- **读者优先（readers-preference）**：读者优先是读操作优先于写操作，即使写操作提出申请资源，但只要还有读者在读取操作，就还允许其他读者继续读取操作，直到所有读者结束读取，才开始写。读优先可以提供很高的并发处理性能，但是在频繁读取的系统中，会长时间写阻塞，导致写饥饿。
+- **写者优先（writers-preference）**：写者优先是写操作优先于读操作，如果有写者提出申请资源，在申请之前已经开始读取操作的可以继续执行读取，但是如果再有读者申请读取操作，则不能够读取，只有在所有的写者写完之后才可以读取。写者优先解决了读者优先造成写饥饿的问题。但是若在频繁写入的系统中，会长时间读阻塞，导致读饥饿。
+
+RWMutex设计采用**写者优先**方法，保证写操作优先处理。
+
+
+
+`RWMutex` 中包含了以下的方法：
+
+- `Lock`：获取写锁，如果有其他 goroutine 持有读锁或写锁，那么就会阻塞等待。
+- `Unlock`：释放写锁。
+- `RLock`：获取读锁，如果有其他 goroutine 持有写锁，那么就会阻塞等待。
+- `RUnlock`：释放读锁。
+
+其他不常用的方法：
+
+- `RLocker`：返回一个读锁，该锁包含了 `RLock` 和 `RUnlock` 方法，可以用来获取读锁和释放读锁。
+- `TryLock`: 尝试获取写锁，如果获取成功，返回 `true`，否则返回 `false`。不会阻塞等待。
+- `TryRLock`: 尝试获取读锁，如果获取成功，返回 `true`，否则返回 `false`。不会阻塞等待。
+
+在 Go 语言中，`sync.RWMutex`的`RLocker`方法用于返回一个实现了`Locker`接口的`ReadLocker`对象。这个`ReadLocker`对象可以用于简化代码中读锁的获取和释放操作, 在大型项目或者代码库中，可能会存在多种不同类型的锁或者并发控制机制。通过使用`Locker`接口，可以方便地进行替换或者扩展.使得代码的调用者不需要直接与`sync.RWMutex`的`RLock`和`RUnlock`方法打交道，而是以一种更通用的接口方式来操作读锁。
+
+```go
+var rwMutex sync.RWMutex
+var sharedData int
+
+func readData() {
+    // 通过RLocker方法获取ReadLocker对象，然后使用它来获取和释放读锁
+    readLocker := rwMutex.RLocker()
+    readLocker.Lock()
+    defer readLocker.Unlock()
+    fmt.Println("读取到的数据:", sharedData)
+}
+```
+
+在 Go 语言的`sync.RWMutex`中，如果已经有`goroutine`获取了读锁/写锁，此时其他`goroutine`尝试获取写锁会被阻塞。只有当所有的读锁/写锁都被释放后，等待获取写锁的`goroutine`才能成功获取写锁。
+
+
+
+#### sync.Once
+
+sync.Once是 Go 语言标准库中`sync`包下的一个结构体类型，它的主要作用是确保某个函数在整个程序运行期间只被执行一次，无论有多少个`goroutine`同时尝试调用它。这在很多场景下非常有用，比如初始化操作、资源加载等，只需要执行一次的任务可以通过它来保证执行的唯一性。
+
+```go
+// Once is an object that will perform exactly one action.
+type Once struct {
+    done uint32 // 判断函数是否已经执行过
+    m    Mutex
+}
+
+func (o *Once) Do(f func()) {
+    if atomic.LoadUint32(&o.done) == 0 {
+        o.doSlow(f)
+    }
+}
+
+func (o *Once) doSlow(f func()) {
+    o.m.Lock()
+    defer o.m.Unlock()
+    if o.done == 0 {
+        defer atomic.StoreUint32(&o.done, 1)
+        f()
+    }
+}
+
+```
+
+**单例模式**
+
+```go
+package main
+
+import (
+    "fmt"
+    "sync"
+)
+
+type Singleton struct {
+    // 这里可以定义单例对象的属性
+}
+
+var (
+    instance *Singleton
+    once     sync.Once
+)
+
+func getInstance() *Singleton {
+    once.Do(func() {
+        instance = &Singleton{}
+        fmt.Println("初始化单例对象")
+    })
+    return instance
+}
+
+func main() {
+    var wg sync.WaitGroup
+
+    // 模拟多个goroutine同时获取单例对象
+    for i := 1; i <= 5; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            singleton := getInstance()
+            fmt.Printf("获取到单例对象: %p\n", singleton)
+        }()
+    }
+
+    wg.Wait()
+}
+```
+
+**数据库连接**
+
+```go
+	var (
+    db      *sql.DB
+    dbOnce  sync.Once
+    dbURL   = "sqlite3://example.db"
+    // 假设这是数据库连接URL，实际应用中可能更复杂
+)
+
+func getDB() (*sql.DB, error) {
+    dbOnce.Do(func() {
+        var err error
+        // 初始化数据库连接
+        db, err = sql.Open("sqlite3", dbURL)
+        if err!= nil {
+            fmt.Println("数据库连接初始化失败:", err)
+            return
+        }
+        // 可以在这里进行其他连接池相关的初始化操作，如设置最大连接数等
+        fmt.Println("数据库连接池初始化完成")
+    })
+    return db, nil
+}
+
+```
+
+**配置文件加载**
+
+```go
+type Config struct {
+    ServerPort int    `json:"server_port"`
+    LogLevel   string `json:"log_level"`
+}
+
+var (
+    config  *Config
+    configOnce sync.Once
+    configFile = "config.json"
+)
+
+func getConfig() *Config {
+    configOnce.Do(func() {
+        data, err := ioutil.ReadFile(configFile)
+        if err!= nil {
+            fmt.Println("读取配置文件失败:", err)
+            return
+        }
+        config = &Config{}
+        err = json.Unmarshal(data, config)
+        if err!= nil {
+            fmt.Println("解析配置文件失败:", err)
+            return
+        }
+        fmt.Println("配置文件加载完成")
+    })
+    return config
+}
+```
+
+
 
 ### 练习 Web 爬虫
 
